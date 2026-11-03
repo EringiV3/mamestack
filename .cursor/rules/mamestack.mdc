@@ -5,7 +5,7 @@ alwaysApply: true
 
 # mamestack
 
-このリポジトリは工場の定義そのものである。プロダクトを作れと言われたら `AGENTS.md` に従い、`node tools/gate/cli.mjs next --root <プロダクト>` が返す質問だけを聞く。工場定義の修正では工程を始めない。
+このリポジトリは工場の定義そのものである。プロダクトを作れと言われたら `AGENTS.md` に従う。ヒアリングは `node tools/gate/cli.mjs next --root <プロダクト>` が返す質問だけを一問ずつ聞く。PRD と Design Doc は、そのテンプレートの不足だけを聞く。工場定義の修正では工程を始めない。
 
 - 工程は hearing → prd → mode → design → tickets → implement → deploy。ゲートを通さず先のファイルだけ書かない。
 - PRD の OK の直後に、full-auto か approval かを一度だけ聞く。

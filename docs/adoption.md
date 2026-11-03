@@ -11,6 +11,8 @@ mamestack はアプリのテンプレートではなく、エージェントが�
    - `.cursor/rules/mamestack.mdc`
    - `.cursor/skills/mamestack/SKILL.md`
    - `templates/`
+   - `templates/prd.md` をプロダクトの `docs/prd.md` へ
+   - `templates/design-doc.md` をプロダクトの `docs/design-doc.md` へ
    - `tools/gate/`
    - `tools/verify-record/`
    - `docs/framework-selection.md`
@@ -27,7 +29,7 @@ mamestack はアプリのテンプレートではなく、エージェントが�
    mamestack で始めて。AGENTS.md のヒアリングから、一問ずつ。
    ```
 
-5. エージェントは `node tools/gate/cli.mjs init --root . --name <名前>` のあと、`next` の質問だけを聞く。
+5. エージェントは `node tools/gate/cli.mjs init --root . --name <名前>` のあと、ヒアリングは `next` の質問だけを聞く。`init` は、無いときに `docs/prd.md` と `docs/design-doc.md` をテンプレートから置く。既にあるファイルは上書きしない。
 
 コピーの代わりに、このリポジトリを submodule や subtree で `vendor/mamestack` に置いてもよい。その場合、プロダクトの `AGENTS.md` は「`vendor/mamestack/AGENTS.md` に従い、ゲートは `node vendor/mamestack/tools/gate/cli.mjs` を、`--root` はこのプロダクトを指す」と一行で委譲する。状態ファイルはプロダクト側の `.mamestack/` にできる。テンプレートのパスは工場側を読む、と委譲の文に書く。
 
@@ -51,6 +53,8 @@ mamestack はアプリのテンプレートではなく、エージェントが�
 | `.cursor/rules/mamestack.mdc` | 常時の短い拘束 |
 | `.cursor/skills/mamestack/SKILL.md` | スキルから本文への入口 |
 | `templates/` | 各文書の見出し |
+| `docs/prd.md` | `templates/prd.md` を写して埋める PRD |
+| `docs/design-doc.md` | `templates/design-doc.md` を写して埋める Design Doc |
 | `tools/gate/` | 飛ばせない状態機械 |
 | `tools/verify-record/record.mjs` | 検証動画 |
 | `docs/cloudflare-deploy.md` | 確認済みコマンドと TODO |
