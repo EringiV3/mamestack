@@ -69,7 +69,7 @@ R2 はダッシュボードで一度有効にする。無料枠でも請求情�
 
 ## サイト
 
-`.mamestack/state.json` が無ければ、先に `node tools/gate/cli.mjs init --root <root> --name <名前>`。ヒアリングの直後に `npm create astro@5.3.1 -- <dir> --yes --no-git --install --skip-houston`。`npm i -D -E wrangler@4.156.2` と `npm i -D -E playwright@1.64.1`。`scripts.deploy` は `astro build && wrangler deploy`。`wrangler.jsonc` は [scaffold](../scaffold/SKILL.md) が `name` と `assets.directory` `"./dist"` だけを書く。
+空のディレクトリで先に `npm create astro@5.3.1 -- <dir> --yes --no-git --install --skip-houston`。そのあと `node tools/gate/cli.mjs init --root <dir> --name <名前>`。`.mamestack` や `docs` があると create-astro は空でないと判断し、終了コード 0 のままランダムな名前の子フォルダ（例 `./fumbling-fireball`）を作る。create-astro は `AGENTS.md` と `README.md` を置く。init はそれらを書き換えず、`.mamestack` と `docs/prd.md` と `docs/design-doc.md` だけを足す。工場の `AGENTS.md` で上書きしない。`npm i -D -E wrangler@4.156.2` と `npm i -D -E playwright@1.64.1`。`scripts.deploy` は `astro build && wrangler deploy`。`wrangler.jsonc` は [scaffold](../scaffold/SKILL.md) が `name`、`compatibility_date`（scaffold した日）、`assets.directory` `"./dist"` を書く。
 
 ## 共通
 

@@ -34,7 +34,7 @@ npm の `cf@1.0.0-beta.27`（homepage は `github.com/cloudflare/cf`）が 2026-
 
 したがってサイトは `cf deploy` を使わない。空ページから本番へは、Cloudflare が Astro 向けに案内している Wrangler で出す。
 
-生成リポジトリでは `npm run deploy` で実行する。サイトの script は `astro build && wrangler deploy`。`wrangler.jsonc` は `name` と `assets.directory` `"./dist"` だけを先に書く。アダプターは入れない。`wrangler` は `4.156.2` を `-E` で固定する。`npx` で最新を取りに行かない。
+生成リポジトリでは `npm run deploy` で実行する。サイトの script は `astro build && wrangler deploy`。`wrangler.jsonc` は `name`、`compatibility_date`（scaffold した日、`YYYY-MM-DD`）、`assets.directory` `"./dist"` を先に書く。アダプターは入れない。`compatibility_date` が無いと wrangler 4.156.2 は `A compatibility_date is required` で拒否する。`wrangler` は `4.156.2` を `-E` で固定する。`npx` で最新を取りに行かない。
 
 ```sh
 npm run deploy
