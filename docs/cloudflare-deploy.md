@@ -40,7 +40,7 @@ npm の `cf@1.0.0-beta.27`（homepage は `github.com/cloudflare/cf`）が 2026-
 npm run deploy
 ```
 
-実行前に `guard --root <プロダクト> --command "npm run deploy"` と利用者の確認が要る。Void アプリへ作り替えない。アプリの `deploy` script は Void CLI であり、Wrangler に切り替えない。
+実行前に `guard --root <プロダクト> --command "npm run deploy"` と利用者の確認が要る。Void アプリへ作り替えない。アプリの `deploy` script は `void deploy --platform cloudflare` であり、Wrangler に切り替えない。`void init` は `--deploy none` なので、プラットフォームを script に書く。
 
 ### Void CLI
 
@@ -59,6 +59,8 @@ void project status
 void project logs
 void project rollback
 ```
+
+生成したアプリの `scripts.deploy` は `void deploy --platform cloudflare`。呼び出しは `npm run deploy`。`void init --deploy none` のあと、プラットフォーム無しの `void deploy` では公開先が決まらない。
 
 `void deploy` は資源を作りマイグレーションを適用する。初回と、マイグレーションがあるたびに確認する。Sandbox は Workers Paid と Containers が要る、と Deployment ページにある。スターターでそれを選ばない。
 

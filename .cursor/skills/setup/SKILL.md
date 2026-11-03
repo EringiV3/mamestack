@@ -17,7 +17,9 @@ description: Install pinned mamestack CLIs and browsers for a generated repo. Us
 | `playwright` | `1.64.1` | 両方 |
 | `better-sqlite3` | `12.11.1` | アプリ（`overrides`） |
 
-この表の版に `^` は付けない。`void init` が足す `hono` や `react` などの `^` は消さない。再現はコミットした `package-lock.json` の `npm ci` で固定する。
+この表の版は `npm i -D -E <name>@<version>` で入れる。`^` は保存されない。`void init` が足す `hono` や `react` などの `^` は消さない。再現はコミットした `package-lock.json` の `npm ci` で固定する。
+
+想定する npm は 11.x。install script は allowScripts で既定では走らない。esbuild、workerd、better-sqlite3 は警告が出る。ビルドとデプロイはそのままで動く。better-sqlite3 の script は許可しない。許可すると node-gyp が走る。
 
 ## Node
 
@@ -41,16 +43,17 @@ description: Install pinned mamestack CLIs and browsers for a generated repo. Us
 ```
 
 2. `.mamestack` と `docs` は、`void@1.5.0` が空のプロジェクトとみなす名前の一覧に無い。残したまま `void init` すると、フラグが無い「Choose a database setup」で止まる。`void@1.5.0` の init が受け取るのは `tsconfig` `github` `git` `toolchain` `framework` `starter` `deploy` だけである。この二つを一時ディレクトリへ移してから init し、終わったら戻す。
-3. 同じディレクトリで次を実行する。`--starter static` がある空のプロジェクトでは、データベースの質問を飛ばす。`--deploy none` はブラウザログインと GitHub workflow の質問を避ける。`CI=1` と、標準入力を閉じる。
+3. `npm i -D -E void@1.5.0`
+4. 同じディレクトリで次を実行する。`--starter static` がある空のプロジェクトでは、データベースの質問を飛ばす。`--deploy none` はブラウザログインと GitHub workflow の質問を避ける。`CI=1` と、標準入力を閉じる。`void init` は postinstall に `void prepare` を足し、`overrides` に `vite` を足す。
 
 ```sh
 CI=1 ./node_modules/.bin/void init --no-git --toolchain vite-plus --framework react --starter static --deploy none </dev/null
 ```
 
-4. `cf@1.0.0-beta.27` と `playwright@1.64.1` を `devDependencies` に足す。`overrides` に `"better-sqlite3": "12.11.1"` を書く。`void@1.5.0` が入れる `13.0.3` は、Node 24.22.1 の `npm ci` が `node-gyp rebuild` を実行し、make が無いと失敗した。`12.11.1` には GitHub Releases の `node-v137` linux-x64 があり、make も g++ も python も無い状態の `npm ci` が終了コード 0 だった。`void prepare` とその `select 1` も通った。
-5. `scripts.deploy` は `void deploy`。
-6. 工場の `AGENTS.md` を戻す。工程の正本は工場側である。`void init` が新しいプロジェクトに書いた Void の `AGENTS.md` は、工場のファイルで置き換える。
-7. `.void-wrangler.jsonc` は `void deploy` が読む生成物である。アプリから Wrangler CLI を呼ぶことにはならない。消さない。`wrangler` パッケージは入れない。
+5. `npm i -D -E cf@1.0.0-beta.27` と `npm i -D -E playwright@1.64.1`。`overrides` に `"better-sqlite3": "12.11.1"` を書く。`void@1.5.0` が入れる `13.0.3` は、Node 24.22.1 の `npm ci` が `node-gyp rebuild` を実行し、make が無いと失敗した。`12.11.1` には GitHub Releases の `node-v137` linux-x64 があり、make も g++ も python も無い状態の `npm ci` が終了コード 0 だった。`void prepare` とその `select 1` も通った。
+6. `scripts.deploy` は `void deploy --platform cloudflare`。`--deploy none` のあと、プラットフォーム無しの `void deploy` では公開先が決まらない。
+7. 工場の `AGENTS.md` を戻す。工程の正本は工場側である。`void init` が新しいプロジェクトに書いた Void の `AGENTS.md` は、工場のファイルで置き換える。
+8. `.void-wrangler.jsonc` は `void deploy` が読む生成物である。アプリから Wrangler CLI を呼ぶことにはならない。消さない。`wrangler` パッケージは入れない。
 
 `CLOUDFLARE_API_TOKEN` と `CLOUDFLARE_ACCOUNT_ID` があるときは、`void cloudflare login` も `void connect` も実行しない。`void deploy` は `CLOUDFLARE_API_TOKEN`（無ければ `CF_API_TOKEN`）を自分で読む。アカウント ID は次の `result[].id` である。
 
@@ -64,7 +67,7 @@ https://dash.cloudflare.com/profile/api-tokens?permissionGroupKeys=%5B%7B%22key%
 
 ## サイト
 
-ヒアリングの直後に行う。`npm create astro@5.3.1 -- <dir> --yes --no-git --install --skip-houston`。`scripts.deploy` は `wrangler deploy`。`wrangler@4.156.2` と `playwright@1.64.1` を足す。
+ヒアリングの直後に行う。`npm create astro@5.3.1 -- <dir> --yes --no-git --install --skip-houston`。`scripts.deploy` は `wrangler deploy`。`npm i -D -E wrangler@4.156.2` と `npm i -D -E playwright@1.64.1`。
 
 ## 共通
 
