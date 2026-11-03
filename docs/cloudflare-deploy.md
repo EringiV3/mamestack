@@ -34,11 +34,13 @@ npm の `cf@1.0.0-beta.27`（homepage は `github.com/cloudflare/cf`）が 2026-
 
 したがってサイトは `cf deploy` を使わない。空ページから本番へは、Cloudflare が Astro 向けに案内している Wrangler で出す。
 
+生成リポジトリでは、このコマンドを `package.json` の `deploy` に書き、`npm run deploy` で実行する。`npx` で最新を取りに行かない。
+
 ```sh
-npx wrangler deploy
+npm run deploy
 ```
 
-実行前に `guard --root <プロダクト> --command "npx wrangler deploy"` と利用者の確認が要る。Void アプリへ作り替えない。アプリは `npx wrangler deploy` に切り替えない。
+実行前に `guard --root <プロダクト> --command "npm run deploy"` と利用者の確認が要る。Void アプリへ作り替えない。アプリの `deploy` script は Void CLI であり、Wrangler に切り替えない。
 
 ### Void CLI
 

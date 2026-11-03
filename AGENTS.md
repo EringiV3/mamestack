@@ -4,7 +4,7 @@ Canonical repository: https://github.com/EringiV3/mamestack (Cursor Origin `mame
 
 Normative rules, in English, so they survive a weak pass over the Japanese below:
 
-- Hearing chooses the track. `static` with data starting `なし` is a website (Astro): after the hearing note, skip PRD, mockup, mode, design, and ticket splits. Write the seven answers briefly in `docs/00-hearing.md` and run `accept-summary --by bot` without asking for approval. Deploy an empty page to production first with `npx wrangler deploy` (guard with `--root`, then a user yes), then build the content, then one pull request with a verification video, then check the production URL. Websites may build and deploy with Wrangler.
+- Hearing chooses the track. `static` with data starting `なし` is a website (Astro): after the hearing note, skip PRD, mockup, mode, design, and ticket splits. Write the seven answers briefly in `docs/00-hearing.md` and run `accept-summary --by bot` without asking for approval. Deploy an empty page to production first with `npm run deploy` (the script runs the pinned Wrangler; `guard --root` then a user yes), then build the content, then one pull request with a verification video, then check the production URL. Websites may build and deploy with Wrangler. Do not use `npx` to fetch a latest CLI, and do not install CLIs globally.
 - Anything else is an app (Void): hearing → PRD → mockup → mode → design → tickets → implement → deploy. Do not skip or reorder those. The first ticket is T1 titled `空のアプリをCloudflare本番に出す` (repo, Void, needed D1 or other resources and bindings, deploy with `cf` or the Void CLI, confirm the production URL). Later pull requests stay deployable. Deploy and resource creation still need a user yes.
 - Ask one hearing question at a time. The only wording is what `node tools/gate/cli.mjs next` prints.
 - At PRD (apps only), copy `templates/prd.md` to `docs/prd.md` and fill it. Ask at most three questions per turn, only what is still missing for the pitch, target and problem, success metrics, features (P0/P1/P2/Won't), screen flow, monetization and cost, and GTM. Do not ask again when the answer is already known. Do not delete unused sections; write 該当なし. Keep the maximum of three features. If `who` starts with `自分だけ`, do not ask the revenue model, pricing, GTM, differentiation, or the revenue and growth success rows. Write `該当なし（自分用）` there. Fill infrastructure cost as the Cloudflare free tier. Do not edit the template.
@@ -106,7 +106,7 @@ OK はモードに関係なく利用者からもらう。OK なら `approve-mock
 | `static` かつ data が「なし」 | Astro |
 | `dynamic`、または保存するデータがある | Void |
 
-ホスティングは Cloudflare。デプロイコマンドは Astro なら `cf deploy`、Void なら `void deploy`。詳細と、実行してはいけない未検証は `docs/framework-selection.md` と `docs/cloudflare-deploy.md`。
+ホスティングは Cloudflare。公開はどちらも `npm run deploy`。サイト（Astro）の script は固定バージョンの Wrangler、アプリ（Void）の script は Void CLI。アプリの資源操作は `cf`。詳細と、実行してはいけない未検証は `docs/framework-selection.md` と `docs/cloudflare-deploy.md`。
 
 性能を先に書く。静的に出せる画面は静的のまま、UI フレームワークを足さない。クライアント JS は v1 の操作に要る分だけ。モックは参考程度に見る。見た目の正にはしない。
 
@@ -128,7 +128,7 @@ OK はモードに関係なく利用者からもらう。OK なら `approve-mock
 
 ### サイト
 
-最初に空ページを `npx wrangler deploy` で本番に出す。実行前に `guard --root <プロダクト> --command "npx wrangler deploy"` と利用者の確認が要る。出た URL を見てから中身を作り、PR を1枚と検証動画を残して `attach-pr` する。
+最初に空ページを `npm run deploy` で本番に出す。script は固定バージョンの Wrangler。実行前に `guard --root <プロダクト> --command "npm run deploy"` と利用者の確認が要る。出た URL を見てから中身を作り、PR を1枚と検証動画を残して `attach-pr` する。
 
 ### アプリ
 
@@ -146,13 +146,23 @@ OK はモードに関係なく利用者からもらう。OK なら `approve-mock
 
 ## 8. デプロイ
 
-マイルストーンは v1 の公開一つをゲートが持つ。コマンドはサイトが `npx wrangler deploy`、アプリが `void deploy`。サイトはヒアリングの直後に、アプリは設計の確定時に固定される。本番 URL で表示を確認する。
+マイルストーンは v1 の公開一つをゲートが持つ。コマンドはどちらも `npm run deploy`。サイトの script は Wrangler、アプリの script は Void CLI。サイトはヒアリングの直後に、アプリは設計の確定時に固定される。本番 URL で表示を確認する。
 
 利用者に、何が公開され、何が未検証で、費用が出るかを伝えてから `confirm-deploy --by user --decision run|skip`。`run` のあとだけコマンドを実行し、成功したら `mark-deploy --exit 0`。失敗したら mark せず、直してからまた確認する。
 
 `docs/cloudflare-deploy.md` が TODO としている操作は、run を提案しない。サイト（Astro）は `cf` ではビルドできないため、ビルドとデプロイに Wrangler を使う。アプリは Wrangler に切り替えない。
 
 独自ドメインの購入コマンドは未検証である。購入は費用がかかるので、コマンド名が公式で分かるまで実行しない。
+
+## スキル
+
+手順の入口である。規則の本文はリンク先で、ここには写さない。
+
+- [setup](.cursor/skills/setup/SKILL.md) — 依存の固定と `npm ci`
+- [scaffold](.cursor/skills/scaffold/SKILL.md) — 初期化と、空のままの本番公開
+- [verify-record](.cursor/skills/verify-record/SKILL.md) — 受入条件の録画
+- [deploy](.cursor/skills/deploy/SKILL.md) — 公開と本番 URL の確認
+- [pr-finish](.cursor/skills/pr-finish/SKILL.md) — PR を1枚閉じる
 
 ## コマンド早見
 

@@ -297,7 +297,7 @@ export function acceptSummary(state, root, by) {
       hearing: { ...state.hearing, summaryAccepted: true },
       deploy: {
         milestones: state.deploy.milestones.map((milestone) =>
-          milestone.id === "v1" ? { ...milestone, command: "npx wrangler deploy" } : milestone,
+          milestone.id === "v1" ? { ...milestone, command: "npm run deploy" } : milestone,
         ),
       },
     };
@@ -682,6 +682,7 @@ export function classifyCommand(command, options = {}) {
     return { class: "allow", reason: "" };
   }
   const confirmers = [
+    { re: /\bnpm\s+run\s+deploy\b/, reason: "npm run deploy は公開であり、費用がかかることがあります" },
     { re: /\bcf\s+deploy\b/, reason: "cf deploy は公開であり、費用がかかることがあります" },
     { re: /\bvoid\s+deploy\b/, reason: "void deploy は資源の作成とマイグレーションを伴います" },
     { re: /\bvoid\s+secret\s+put\b/, reason: "本番シークレットの書き込みです" },
@@ -764,7 +765,7 @@ export function nextAction(state) {
         return {
           code: "implement",
           message:
-            "サイトの実装です。最初に空ページを npx wrangler deploy で本番に出します。実行前に guard --root <プロダクト> --command \"npx wrangler deploy\" と利用者の確認が要ります。出た本番 URL を見てから中身を作り、PR を1枚と検証動画を残して attach-pr します。アプリに Wrangler は使いません。",
+            "サイトの実装です。最初に空ページを npm run deploy（中身は固定バージョンの Wrangler）で本番に出します。実行前に guard --root <プロダクト> --command \"npm run deploy\" と利用者の確認が要ります。出た本番 URL を見てから中身を作り、PR を1枚と検証動画を残して attach-pr します。アプリに Wrangler は使いません。",
         };
       }
       const open = state.tickets.items.find((item) => !item.pr);
@@ -777,7 +778,7 @@ export function nextAction(state) {
       return {
         code: "confirm-deploy",
         message:
-          "デプロイは費用と公開を伴います。サイトもアプリも、本番 URL で表示を確認します。必ず利用者に確認してください。サイトの公開コマンドは npx wrangler deploy、アプリは cf か Void CLI です。docs/cloudflare-deploy.md の未検証項目が残っているコマンドは実行せず、その旨を伝えて skip か待機を選んでもらいます。確認後に confirm-deploy --by user。",
+          "デプロイは費用と公開を伴います。サイトもアプリも、本番 URL で表示を確認します。必ず利用者に確認してください。公開は npm run deploy です。サイトの script は固定バージョンの Wrangler、アプリは Void CLI と cf です。docs/cloudflare-deploy.md の未検証項目が残っているコマンドは実行せず、その旨を伝えて skip か待機を選んでもらいます。確認後に confirm-deploy --by user。",
       };
     case "done":
       return { code: "done", message: "このプロダクトの mamestack 工程は閉じました。" };
