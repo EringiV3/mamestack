@@ -147,11 +147,8 @@ function assertUser(by, action) {
 }
 
 function deployCommandFor(framework) {
-  if (framework === "astro") {
-    return "cf deploy";
-  }
-  if (framework === "void") {
-    return "void deploy";
+  if (framework === "astro" || framework === "void") {
+    return "npm run deploy";
   }
   throw new Error("framework は astro か void です");
 }

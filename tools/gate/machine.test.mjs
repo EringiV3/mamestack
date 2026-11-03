@@ -241,6 +241,7 @@ test("新しいテンプレートの見出しでも PRD と設計書を承認で
   write(root, state.design.path, `# demo Design Doc\n\nVoid\n${reason}\n営業時間を表示する\n`);
   const approved = approveDesign(state, root, "user", "void", reason);
   assert.equal(approved.phase, "tickets");
+  assert.equal(approved.deploy.milestones[0].command, "npm run deploy");
   assert.deepEqual(validate(approved, root), []);
 });
 
