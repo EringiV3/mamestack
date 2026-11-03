@@ -69,7 +69,7 @@ R2 はダッシュボードで一度有効にする。無料枠でも請求情�
 
 ## サイト
 
-空のディレクトリで先に `npm create astro@5.3.1 -- <dir> --yes --no-git --install --skip-houston`。そのあと `node tools/gate/cli.mjs init --root <dir> --name <名前>`。`.mamestack` や `docs` があると create-astro は空でないと判断し、終了コード 0 のままランダムな名前の子フォルダ（例 `./fumbling-fireball`）を作る。create-astro は `AGENTS.md` と `README.md` を置く。init はそれらを書き換えず、`.mamestack` と `docs/prd.md` と `docs/design-doc.md` だけを足す。工場の `AGENTS.md` で上書きしない。`npm i -D -E wrangler@4.156.2` と `npm i -D -E playwright@1.64.1`。`scripts.deploy` は `astro build && wrangler deploy`。`wrangler.jsonc` は [scaffold](../scaffold/SKILL.md) が `name`、`compatibility_date`（scaffold した日）、`assets.directory` `"./dist"` を書く。
+ヒアリングの直後に行う。`init` は済んでいて `.mamestack` と `docs` がある。この二つを一時ディレクトリへ移してから `npm create astro@5.3.1 -- <dir> --yes --no-git --install --skip-houston` を実行し、終わったら戻す。残したまま `--yes` だと create-astro は空でないと判断し、終了コード 0 のままランダムな名前の子フォルダ（例 `./fumbling-fireball`）を作る。Astro はプロダクトのルートに来ない。`init` は繰り返さない。もう一度実行すると「既に init 済みです」で失敗する。create-astro は `AGENTS.md` と `README.md` を置く。工場の `AGENTS.md` で上書きしない。`npm i -D -E wrangler@4.156.2` と `npm i -D -E playwright@1.64.1`。`scripts.deploy` は `astro build && wrangler deploy`。`wrangler.jsonc` は [scaffold](../scaffold/SKILL.md) が `name`、`compatibility_date`（scaffold した日）、`assets.directory` `"./dist"` を書く。
 
 ## 共通
 
