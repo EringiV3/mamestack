@@ -4,11 +4,12 @@ Canonical repository: https://github.com/EringiV3/mamestack (Cursor Origin `mame
 
 Normative rules, in English, so they survive a weak pass over the Japanese below:
 
-- Never skip or reorder phases: hearing → PRD → mode → design → tickets → implement → deploy.
+- Never skip or reorder phases: hearing → PRD → mockup → mode → design → tickets → implement → deploy.
 - Ask one hearing question at a time. The only wording is what `node tools/gate/cli.mjs next` prints.
 - At PRD, copy `templates/prd.md` to `docs/prd.md` and fill it. Ask at most three questions per turn, only what is still missing for the pitch, target and problem, success metrics, features (P0/P1/P2/Won't), screen flow, monetization and cost, and GTM. Do not ask again when the answer is already known. Do not delete unused sections; write 該当なし. Keep the maximum of three features.
 - At design, copy `templates/design-doc.md` to `docs/design-doc.md` and fill every section. Ask only decisions only the user can make, such as auth, billing, and domain. Do not ask again when the answer is already known. Do not delete unused sections; write 該当なし.
-- After the user accepts the PRD, ask once: `full-auto` or `approval`.
+- After the user accepts the PRD, build a dependency-free HTML mock of the PRD screen flow and P0 screens only, under `docs/mockup/` (`index.html` links to each screen). Show phone-width and desktop-width screenshots and wait for OK. The OK is required in both modes. Revise and show again when asked. Reflect spec changes in `docs/prd.md`. Do not add a feature; a fourth feature is a note for the next version, in the PRD Won't row. The mock aligns the overall image and rough UI only. It is not the visual source of truth. Design and implementation may glance at it. Do not compare implementation PRs against it.
+- After the user accepts the mockup, ask once: `full-auto` or `approval`.
 - In both modes, destructive data operations and anything that costs money stop for an explicit user yes. Run `node tools/gate/cli.mjs guard --command "<exact command>"` first. Exit 3 means wait. Exit 4 means the command is forbidden.
 - Websites use Astro. Applications use Void (Void SDK, deployed with the Void CLI). Host on Cloudflare. Deploy with `cf` or the Void CLI. Do not use Wrangler, and do not switch to it when `cf` cannot build the project.
 - One pull request per ticket. A PR without a verification video is not done. Record it with `tools/verify-record/record.mjs`. The gate rejects a missing, tiny, or non-video file.
@@ -52,9 +53,21 @@ node tools/gate/cli.mjs next --root <プロダクトのルート>
 
 利用者に全文を見せ、OK まで待つ。修正依頼は同じフェーズで直す。OK なら `approve-prd --by user`。
 
-## 3. モード
+## 3. モックアップ
 
-PRD 承認の直後に、`next` が返すモードの質問を一度だけ聞く。
+PRD の OK のあと、モードを聞く前に作る。`init` は `docs/mockup/` を作らない。
+
+PRD の画面フローと P0 の画面だけを、依存なしの HTML と CSS で置く。入口は `docs/mockup/index.html` で、各画面へリンクする。JS は画面切替など最小限、データはダミー。外部の script や stylesheet は置かない。
+
+スマホ幅と PC 幅のスクショを撮り、利用者に見せる。修正が来たら直して、また見せる。仕様に関わる変更は `docs/prd.md` にも反映する。機能は足さない。4つ目は次の版のメモとして、PRD の Won't に一行残す。
+
+これは全体のイメージと大まかな UI をすり合わせるためのものである。見た目の正にはしない。Design Doc と実装では参考程度に見る。実装 PR でモックとの差は確認しない。
+
+OK はモードに関係なく利用者からもらう。OK なら `approve-mockup --by user`。
+
+## 4. モード
+
+モック承認の直後に、`next` が返すモードの質問を一度だけ聞く。
 
 - `full-auto`: 設計書、チケットの粒度、実装 PR はボットが進める。
 - `approval`: 設計書、チケットの粒度、各 PR を利用者が承認する。
@@ -71,7 +84,7 @@ PRD 承認の直後に、`next` が返すモードの質問を一度だけ聞く
 
 迷ったら確認する。`guard` が allow でも、データが消えるなら止まる。
 
-## 4. Design Doc
+## 5. Design Doc
 
 `templates/design-doc.md` を `docs/design-doc.md` に写して埋める。`init` が既に置いていれば、それを埋める。見出し、表、チェックリストは残す。使わないセクションは削らず「該当なし」と書く。
 
@@ -88,11 +101,11 @@ PRD 承認の直後に、`next` が返すモードの質問を一度だけ聞く
 
 ホスティングは Cloudflare。デプロイコマンドは Astro なら `cf deploy`、Void なら `void deploy`。詳細と、実行してはいけない未検証は `docs/framework-selection.md` と `docs/cloudflare-deploy.md`。
 
-性能を先に書く。静的に出せる画面は静的のまま、UI フレームワークを足さない。クライアント JS は v1 の操作に要る分だけ。
+性能を先に書く。静的に出せる画面は静的のまま、UI フレームワークを足さない。クライアント JS は v1 の操作に要る分だけ。モックは参考程度に見る。見た目の正にはしない。
 
 `approval` では利用者の OK のあと `approve-design --by user`。`full-auto` では書いた直後に `approve-design --by bot`。選定理由は設計書と同じ文を `--reason` に渡す。
 
-## 5. チケット
+## 6. チケット
 
 v1 の機能ごとに、`templates/ticket.md` で `docs/tickets/T1.md` のように書き、`add-ticket` する。
 
@@ -102,7 +115,7 @@ v1 の機能ごとに、`templates/ticket.md` で `docs/tickets/T1.md` のよう
 
 `approval` では枚数と粒度の OK を待って `confirm-tickets --by user`。`full-auto` では `confirm-tickets --by bot`。
 
-## 6. 実装
+## 7. 実装
 
 開いているチケットを一つだけ実装する。PR は一枚。
 
@@ -112,11 +125,11 @@ v1 の機能ごとに、`templates/ticket.md` で `docs/tickets/T1.md` のよう
 4. `attach-pr --ticket T1 --pr docs/prs/T1.md --video recordings/t1.webm`
 5. `approval` では、attach の前に PR 本文を利用者へ見せて OK を取る。OK 前に `attach-pr` しない。
 
-動画ファイルがディスクにあり、WebM か MP4 で、1KB より大きいことをゲートが見る。リンクだけの PR は完了にならない。
+動画ファイルがディスクにあり、WebM か MP4 で、1KB より大きいことをゲートが見る。リンクだけの PR は完了にならない。モックとの差分確認はしない。
 
 全チケットが付いたら phase は `deploy` になる。
 
-## 7. デプロイ
+## 8. デプロイ
 
 マイルストーンは v1 の公開一つをゲートが持つ。コマンドは設計時に `cf deploy` か `void deploy` へ固定される。
 

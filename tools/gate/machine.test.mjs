@@ -10,6 +10,7 @@ import {
   addTicket,
   answer,
   approveDesign,
+  approveMockup,
   approvePrd,
   attachPr,
   classifyCommand,
@@ -119,7 +120,28 @@ test("PRD の前にモードは決まらず、承認は利用者だけ", () => {
   assert.throws(() => acceptSummary(state, root, "bot"), /利用者/);
   state = acceptSummary(state, root, "user");
   assert.equal(state.phase, "prd");
-  assert.throws(() => setMode(state, root, "full-auto", "user"), /PRD/);
+  assert.throws(() => setMode(state, root, "full-auto", "user"), /モック/);
+});
+
+test("モックの OK は利用者だけで、モードより前", () => {
+  const root = tempRoot();
+  let state = hear(createState("demo"));
+  write(root, state.hearing.summaryPath, summaryBody());
+  state = acceptSummary(state, root, "user");
+  write(root, state.prd.path, `# PRD\n\ndemo\n${ANSWERS.what}\n営業時間を表示する\n売り切れをスマホで更新する\n`);
+  state = approvePrd(state, root, "user");
+  assert.equal(state.phase, "mockup");
+  write(
+    root,
+    state.mockup.path,
+    '<!doctype html><html><head><link rel="stylesheet" href="https://example.com/a.css"></head><body></body></html>\n',
+  );
+  assert.throws(() => approveMockup(state, root, "user"), /外部/);
+  write(root, state.mockup.path, "<!doctype html><html><body><p>demo</p></body></html>\n");
+  assert.throws(() => approveMockup(state, root, "bot"), /利用者/);
+  state = approveMockup(state, root, "user");
+  assert.equal(state.phase, "mode");
+  assert.equal(state.mockup.approvedBy, "user");
 });
 
 test("approval ではボットが設計書を確定できない", () => {
@@ -181,6 +203,8 @@ test("動的アプリに Astro は選べない", () => {
   state = acceptSummary(state, root, "user");
   write(root, state.prd.path, `# PRD\n\napp\n${ANSWERS.what}\n営業時間を表示する\n売り切れをスマホで更新する\n`);
   state = approvePrd(state, root, "user");
+  write(root, state.mockup.path, "<!doctype html><html><body><p>app</p></body></html>\n");
+  state = approveMockup(state, root, "user");
   write(root, state.modeNotePath, "approval を選ぶ。\n");
   state = setMode(state, root, "approval", "user");
   const reason = "保存があるのでアプリケーションとして扱う";
@@ -199,6 +223,8 @@ test("新しいテンプレートの見出しでも PRD と設計書を承認で
     `# demo PRD（要求仕様書）\n\n${ANSWERS.what}\n営業時間を表示する\n売り切れをスマホで更新する\n`,
   );
   state = approvePrd(state, root, "user");
+  write(root, state.mockup.path, "<!doctype html><html><body><p>demo</p></body></html>\n");
+  state = approveMockup(state, root, "user");
   write(root, state.modeNotePath, "approval\n");
   state = setMode(state, root, "approval", "user");
   const reason = "保存のない静的サイトなので Astro を使う";
@@ -220,6 +246,7 @@ test("init は PRD と Design Doc のテンプレートを docs に置く", () =
   assert.match(prd, /エレベーターピッチ/);
   assert.match(design, /Design Doc/);
   assert.match(design, /wrangler/);
+  assert.equal(fs.existsSync(path.join(root, "docs/mockup")), false);
 });
 
 test("Wrangler は確認しても禁止で、cf deploy は確認が要る", () => {
@@ -237,6 +264,8 @@ function readyForDesign(root, mode) {
   state = acceptSummary(state, root, "user");
   write(root, state.prd.path, `# PRD\n\ndemo\n${ANSWERS.what}\n営業時間を表示する\n売り切れをスマホで更新する\n`);
   state = approvePrd(state, root, "user");
+  write(root, state.mockup.path, "<!doctype html><html><body><p>demo</p></body></html>\n");
+  state = approveMockup(state, root, "user");
   write(root, "docs/03-mode.md", `${mode} で進める。\n`);
   return setMode(state, root, mode, "user");
 }
