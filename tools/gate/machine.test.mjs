@@ -327,6 +327,8 @@ test("Wrangler は確認しても禁止で、cf deploy は確認が要る", () =
   assert.equal(classifyCommand("npx wrangler deploy").class, "forbidden");
   assert.equal(classifyCommand("npx wrangler deploy", { track: "app" }).class, "forbidden");
   assert.equal(classifyCommand("npx wrangler deploy", { track: "site" }).class, "confirm");
+  assert.equal(classifyCommand("npx wrangler rollback", { track: "site" }).class, "confirm");
+  assert.equal(classifyCommand("npx wrangler deployments rollback", { track: "site" }).class, "confirm");
   assert.equal(classifyCommand("npx wrangler dev", { track: "site" }).class, "allow");
   assert.equal(classifyCommand("cf deploy").class, "confirm");
   assert.equal(classifyCommand("void deploy --platform cloudflare").class, "confirm");

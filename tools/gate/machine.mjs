@@ -676,6 +676,9 @@ export function classifyCommand(command, options = {}) {
     if (track !== "site") {
       return { class: "forbidden", reason: "アプリは Wrangler を使いません。サイト（Astro）だけが使います" };
     }
+    if (/\brollback\b/i.test(normalized)) {
+      return { class: "confirm", reason: "ロールバックです" };
+    }
     if (/\bdeploy\b/.test(normalized) || /\b(delete|secret)\b/i.test(normalized) || /\b--force\b/.test(normalized)) {
       return { class: "confirm", reason: "サイトの Wrangler デプロイは公開であり、費用がかかることがあります" };
     }
