@@ -91,6 +91,14 @@ export function createState(name) {
     deploy: {
       milestones: [
         {
+          id: "empty",
+          command: "npm run deploy",
+          decision: null,
+          reason: "",
+          confirmedBy: null,
+          executed: false,
+        },
+        {
           id: "v1",
           command: null,
           decision: null,
@@ -604,9 +612,27 @@ export function attachPr(state, root, ticketId, prPath, videoPath) {
   };
 }
 
+function assertEmptyDeploy(state) {
+  if (state.phase !== "implement" && state.phase !== "deploy") {
+    throw new Error("空の公開を確認できるのは implement か deploy の間です");
+  }
+  if (state.track === "app") {
+    const first = state.tickets.items.find((item) => item.id === "T1");
+    if (!first || first.title !== EMPTY_APP_TICKET_TITLE) {
+      throw new Error(`空の公開は T1「${EMPTY_APP_TICKET_TITLE}」の実装中に確認します`);
+    }
+    return;
+  }
+  if (state.track !== "site") {
+    throw new Error("空の公開はサイトかアプリの実装中に確認します");
+  }
+}
+
 export function confirmDeploy(state, milestoneId, decision, by, reason) {
   assertUser(by, "デプロイの確認");
-  if (state.phase !== "deploy") {
+  if (milestoneId === "empty") {
+    assertEmptyDeploy(state);
+  } else if (state.phase !== "deploy") {
     throw new Error("デプロイを確認できるのは、全チケットの検証動画が揃ってからです");
   }
   if (decision !== "run" && decision !== "skip") {
@@ -640,15 +666,16 @@ export function confirmDeploy(state, milestoneId, decision, by, reason) {
       : item,
   );
   const resolved = milestones.every((item) => item.decision === "skip" || item.executed);
+  const stayImplement = state.phase === "implement" && milestoneId === "empty";
   return {
     ...state,
-    phase: resolved ? "done" : "deploy",
+    phase: resolved ? "done" : stayImplement ? "implement" : "deploy",
     deploy: { milestones },
   };
 }
 
 export function markDeploy(state, milestoneId, exitCode) {
-  if (state.phase !== "deploy" && state.phase !== "done") {
+  if (state.phase !== "deploy" && state.phase !== "done" && !(state.phase === "implement" && milestoneId === "empty")) {
     throw new Error("実行結果を記録できるのはデプロイ確認の後です");
   }
   const milestone = state.deploy.milestones.find((item) => item.id === milestoneId);
@@ -662,9 +689,10 @@ export function markDeploy(state, milestoneId, exitCode) {
     item.id === milestoneId ? { ...item, executed: true } : item,
   );
   const resolved = milestones.every((item) => item.decision === "skip" || item.executed);
+  const stayImplement = state.phase === "implement" && milestoneId === "empty";
   return {
     ...state,
-    phase: resolved ? "done" : "deploy",
+    phase: resolved ? "done" : stayImplement ? "implement" : state.phase === "done" ? "done" : "deploy",
     deploy: { milestones },
   };
 }
@@ -765,13 +793,13 @@ export function nextAction(state) {
         return {
           code: "implement",
           message:
-            "サイトの実装です。最初に空ページを npm run deploy（中身は固定バージョンの Wrangler）で本番に出します。実行前に guard --root <プロダクト> --command \"npm run deploy\" と利用者の確認が要ります。出た本番 URL を見てから中身を作り、PR を1枚と検証動画を残して attach-pr します。アプリに Wrangler は使いません。",
+            "サイトの実装です。最初に空ページを出します。confirm-deploy --milestone empty --by user のあと npm run deploy し、成功したら mark-deploy --milestone empty --exit 0。v1 は検証動画のあとです。手順は docs/cloudflare-deploy.md の空の公開。アプリに Wrangler は使いません。",
         };
       }
       const open = state.tickets.items.find((item) => !item.pr);
       return {
         code: "implement",
-        message: `チケット ${open?.id ?? "?"} だけを実装し、PR を1枚作り、検証動画を録画してください。動画の無い PR は完了になりません。各 PR のあと本番に出せる状態を保ちます。デプロイそのものは利用者の確認が要ります。モックとの差分確認はしません。approval なら PR ごとに利用者の OK を取ります。`,
+        message: `チケット ${open?.id ?? "?"} だけを実装し、PR を1枚作り、検証動画を録画してください。動画の無い PR は完了になりません。T1 の空の公開は confirm-deploy --milestone empty で、実装中に記録します。v1 は全動画のあとです。各 PR のあと本番に出せる状態を保ちます。デプロイそのものは利用者の確認が要ります。モックとの差分確認はしません。approval なら PR ごとに利用者の OK を取ります。`,
       };
     }
     case "deploy":

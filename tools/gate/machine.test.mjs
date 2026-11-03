@@ -16,6 +16,7 @@ import {
   classifyCommand,
   confirmDeploy,
   confirmTickets,
+  markDeploy,
   createState,
   EMPTY_APP_TICKET_TITLE,
   setMode,
@@ -165,7 +166,9 @@ test("full-auto でもデプロイ確認はボットだけでは通らない", (
     () => confirmDeploy(deploying, "v1", "run", "bot", "ボットが公開すると決めた"),
     /利用者/,
   );
-  const done = confirmDeploy(deploying, "v1", "skip", "user", "アカウントが無いので公開しない");
+  const withEmpty = confirmDeploy(deploying, "empty", "skip", "user", "テストでは空の公開を省略する");
+  assert.equal(withEmpty.phase, "deploy");
+  const done = confirmDeploy(withEmpty, "v1", "skip", "user", "アカウントが無いので公開しない");
   assert.equal(done.phase, "done");
   assert.deepEqual(validate(done, root), []);
 });
@@ -289,6 +292,33 @@ test("自分用アプリの PRD は該当なし（自分用）が要る", () => 
   );
   state = approvePrd(state, root, "user");
   assert.equal(state.phase, "mockup");
+});
+
+test("空の公開は実装中に記録でき、v1 は動画が揃うまで拒む", () => {
+  const root = tempRoot();
+  let state = hear(createState("demo"));
+  write(root, state.hearing.summaryPath, summaryBody());
+  state = acceptSummary(state, root, "bot");
+  assert.throws(
+    () => confirmDeploy(state, "v1", "run", "user", "動画の前に v1 を確定したい"),
+    /検証動画/,
+  );
+  state = confirmDeploy(state, "empty", "run", "user", "空ページを本番に出す");
+  assert.equal(state.phase, "implement");
+  state = markDeploy(state, "empty", 0);
+  assert.equal(state.phase, "implement");
+  assert.equal(state.deploy.milestones.find((item) => item.id === "empty").executed, true);
+  const app = readyToImplement(root, "approval");
+  assert.throws(
+    () => confirmDeploy(app, "empty", "run", "bot", "ボットが空のアプリを出す"),
+    /利用者/,
+  );
+  const recorded = markDeploy(
+    confirmDeploy(app, "empty", "run", "user", "空のアプリを本番に出す"),
+    "empty",
+    0,
+  );
+  assert.equal(recorded.phase, "implement");
 });
 
 test("アプリの最初のチケットは空の本番公開", () => {

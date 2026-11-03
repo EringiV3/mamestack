@@ -64,7 +64,18 @@ void project rollback
 
 ## マイルストーン
 
-ゲートが持つマイルストーンは `v1` の一回である。
+ゲートは `empty` と `v1` を持つ。`empty` は空の公開、`v1` は機能の入った公開である。
+
+### 空の公開
+
+サイトの実装の最初と、アプリの T1「空のアプリをCloudflare本番に出す」のあいだは、phase が `implement` である。ここで `v1` は使わない。
+
+1. `confirm-deploy --root <root> --milestone empty --decision run --by user --reason "..."`
+2. `guard --root <root> --command "npm run deploy"` が confirm を返したら、利用者の確認のあと `npm run deploy`。
+3. 終了コード 0 なら `mark-deploy --root <root> --milestone empty --exit 0`。phase は `implement` のまま。
+4. 出た URL を開いて、空であることが見えることを確認する。
+
+### v1
 
 1. 全チケットの検証動画が揃う（phase が `deploy`）。
 2. 上の未検証を利用者に見せる。
