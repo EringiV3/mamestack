@@ -32,7 +32,7 @@ node tools/gate/cli.mjs next --root <プロダクトのルート>
 
 ## 1. Hearing
 
-`init --root <dir> --name <名前>` のあと、`next` の質問を一問ずつ聞く。
+`init --root <dir> --name <名前>` のあと、`next` の質問を一問ずつ聞く。サイトは空のディレクトリで `npm create astro` を先にし、`init` はそのあと。`.mamestack` や `docs` があると create-astro は別フォルダを作る。
 
 答えは短くても、ゲートが求める形を守る。
 
@@ -128,7 +128,7 @@ OK はモードに関係なく利用者からもらう。OK なら `approve-mock
 
 ### サイト
 
-`.mamestack/state.json` が無ければ `node tools/gate/cli.mjs init --root <root> --name <名前>`。最初に空ページを出す。記録は [docs/cloudflare-deploy.md](docs/cloudflare-deploy.md) の空の公開（`confirm-deploy --milestone empty`）。`v1` は検証動画のあと。出た URL を見てから中身を作り、PR を1枚と検証動画を残して `attach-pr` する。
+空のディレクトリで `npm create astro` を先にし、そのあと `node tools/gate/cli.mjs init --root <dir> --name <名前>`。`.mamestack` や `docs` があると create-astro は別フォルダを作って終わる。最初に空ページを出す。記録は [docs/cloudflare-deploy.md](docs/cloudflare-deploy.md) の空の公開（`confirm-deploy --milestone empty`）。`v1` は検証動画のあと。出た URL を見てから中身を作り、PR を1枚と検証動画を残して `attach-pr` する。
 
 ### アプリ
 
