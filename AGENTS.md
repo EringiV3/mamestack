@@ -6,6 +6,8 @@ Normative rules, in English, so they survive a weak pass over the Japanese below
 
 - Never skip or reorder phases: hearing → PRD → mode → design → tickets → implement → deploy.
 - Ask one hearing question at a time. The only wording is what `node tools/gate/cli.mjs next` prints.
+- At PRD, copy `templates/prd.md` to `docs/prd.md` and fill it. Ask at most three questions per turn, only what is still missing for the pitch, target and problem, success metrics, features (P0/P1/P2/Won't), screen flow, monetization and cost, and GTM. Do not ask again when the answer is already known. Do not delete unused sections; write 該当なし. Keep the maximum of three features.
+- At design, copy `templates/design-doc.md` to `docs/design-doc.md` and fill every section. Ask only decisions only the user can make, such as auth, billing, and domain. Do not ask again when the answer is already known. Do not delete unused sections; write 該当なし.
 - After the user accepts the PRD, ask once: `full-auto` or `approval`.
 - In both modes, destructive data operations and anything that costs money stop for an explicit user yes. Run `node tools/gate/cli.mjs guard --command "<exact command>"` first. Exit 3 means wait. Exit 4 means the command is forbidden.
 - Websites use Astro. Applications use Void (Void SDK, deployed with the Void CLI). Host on Cloudflare. Deploy with `cf` or the Void CLI. Do not use Wrangler, and do not switch to it when `cf` cannot build the project.
@@ -22,7 +24,7 @@ Normative rules, in English, so they survive a weak pass over the Japanese below
 node tools/gate/cli.mjs next --root <プロダクトのルート>
 ```
 
-返った文章だけを利用者に見せる。先回りして設計や実装を始めない。利用者が答えたら、対応するサブコマンドを実行し、もう一度 `next` を見る。
+ヒアリング中は、返った文章だけを利用者に見せる。質問をまとめない。PRD と Design Doc では `next` の手順に従い、不足分だけを聞く。先回りして実装を始めない。利用者が答えたら、対応するサブコマンドを実行し、もう一度 `next` を見る。
 
 状態は `<ルート>/.mamestack/state.json` にある。手で phase を書き換えない。戻すサブコマンドは無い。やり直すときは、利用者がディレクトリの削除を明示したときだけ消す。
 
@@ -42,7 +44,13 @@ node tools/gate/cli.mjs next --root <プロダクトのルート>
 
 ## 2. PRD
 
-`templates/prd.md` を `docs/01-prd.md` に写して埋める。利用者に全文を見せ、OK まで待つ。修正依頼は同じフェーズで直す。OK なら `approve-prd --by user`。
+`templates/prd.md` を `docs/prd.md` に写して埋める。`init` が既に置いていれば、それを埋める。見出し、表、チェックリストは残す。
+
+埋めるのは次である。エレベーターピッチ、ターゲットと課題、成功指標、機能要件（P0 / P1 / P2 / Won't）、画面フロー、マネタイズ・コスト、GTM。
+
+ヒアリングで答えが出ている項目は聞き直さない。足りないことだけを、1回につき3問まで聞く。機能はヒアリングと同じで最大3つ。行やセクションが余っても削らず、「該当なし」と書く。ヒアリングの機能名は機能要件に残す。
+
+利用者に全文を見せ、OK まで待つ。修正依頼は同じフェーズで直す。OK なら `approve-prd --by user`。
 
 ## 3. モード
 
@@ -65,7 +73,13 @@ PRD 承認の直後に、`next` が返すモードの質問を一度だけ聞く
 
 ## 4. Design Doc
 
-`templates/design-doc.md` を `docs/02-design.md` に書く。フレームワークは次で、例外を黙って作らない。
+`templates/design-doc.md` を `docs/design-doc.md` に写して埋める。`init` が既に置いていれば、それを埋める。見出し、表、チェックリストは残す。使わないセクションは削らず「該当なし」と書く。
+
+利用者にしか決められないこと（認証、課金、ドメインなど）だけ聞く。ヒアリングと PRD で答えが出ている項目は聞き直さない。
+
+テンプレートに wrangler とあっても、コマンドは cf / Void CLI に読み替える。
+
+フレームワークは次で、例外を黙って作らない。
 
 | ヒアリング | 使うもの |
 | --- | --- |

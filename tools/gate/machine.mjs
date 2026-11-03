@@ -37,6 +37,14 @@ export const QUESTIONS = {
 const MODE_QUESTION =
   "ここから先は、どちらにしますか。full-auto（この後はボットが進める。ただし破壊的なデータ操作と、費用のかかる操作は必ず確認する）か、approval（設計書、チケットの粒度、各 PR をあなたが承認する）か。";
 
+function hasPrdHeading(body) {
+  return /^#\s.*PRD/m.test(body);
+}
+
+function hasDesignHeading(body) {
+  return /^#\s.*(?:設計書|Design Doc)/m.test(body);
+}
+
 /**
  * @param {never} value
  */
@@ -63,10 +71,10 @@ export function createState(name) {
         domain: null,
       },
     },
-    prd: { path: "docs/01-prd.md", approved: false, approvedBy: null },
+    prd: { path: "docs/prd.md", approved: false, approvedBy: null },
     modeNotePath: "docs/03-mode.md",
     design: {
-      path: "docs/02-design.md",
+      path: "docs/design-doc.md",
       approved: false,
       approvedBy: null,
       framework: null,
@@ -263,8 +271,8 @@ export function approvePrd(state, root, by) {
     throw new Error("PRD を承認できるのは prd の間だけです");
   }
   const body = readRequired(root, state.prd.path);
-  if (!body.includes("# PRD")) {
-    throw new Error("PRD に見出し「# PRD」がありません");
+  if (!hasPrdHeading(body)) {
+    throw new Error("PRD の見出しに PRD がありません");
   }
   if (!body.includes(state.name) && !body.includes(state.hearing.answers.what)) {
     throw new Error("PRD がヒアリングの内容と繋がっていません");
@@ -328,8 +336,8 @@ export function approveDesign(state, root, by, framework, reason) {
     throw new Error("フレームワークを選んだ理由を書いてください");
   }
   const body = readRequired(root, state.design.path);
-  if (!body.includes("# 設計書")) {
-    throw new Error("設計書に見出し「# 設計書」がありません");
+  if (!hasDesignHeading(body)) {
+    throw new Error("設計書の見出しに「設計書」または「Design Doc」がありません");
   }
   const frameworkWord = framework === "astro" ? "Astro" : "Void";
   if (!body.includes(frameworkWord)) {
@@ -605,7 +613,7 @@ export function nextAction(state) {
       return {
         code: "write-prd",
         message:
-          "templates/prd.md から docs/01-prd.md を書き、利用者に見せてください。OK 以外では先へ進みません。OK なら approve-prd --by user を実行します。",
+          "templates/prd.md を docs/prd.md に写して埋めてください。init で置いてあればそれを使います。エレベーターピッチ、ターゲットと課題、成功指標、機能要件（P0/P1/P2/Won't）、画面フロー、マネタイズ・コスト、GTM を埋めます。答えが出ている項目は聞き直さず、不足だけを1回3問まで聞いてください。機能は最大3つです。削らず、不要な箇所は「該当なし」と書きます。全文を見せ、OK なら approve-prd --by user を実行します。",
       };
     case "mode":
       return {
@@ -616,7 +624,7 @@ export function nextAction(state) {
       return {
         code: "write-design",
         message:
-          "templates/design-doc.md から docs/02-design.md を書いてください。サイトは Astro、アプリケーションは Void、公開先は Cloudflare です。Wrangler は使いません。approval なら利用者の OK を待って approve-design --by user。full-auto なら approve-design --by bot で進め、設計書は残します。",
+          "templates/design-doc.md を docs/design-doc.md に写して埋めてください。init で置いてあればそれを使います。各セクションを埋め、利用者にしか決められないこと（認証、課金、ドメインなど）だけ聞いてください。答えが出ている項目は聞き直さない。削らず、不要な箇所は「該当なし」と書きます。サイトは Astro、アプリケーションは Void、公開先は Cloudflare です。テンプレートの文言は残します。approval なら利用者の OK を待って approve-design --by user。full-auto なら approve-design --by bot。選定理由は設計書と同じ文を --reason に渡します。",
       };
     case "tickets":
       return {
@@ -692,7 +700,7 @@ export function validate(state, root) {
     } else {
       try {
         const body = readRequired(root, state.prd.path);
-        if (!body.includes("# PRD")) {
+        if (!hasPrdHeading(body)) {
           fail("PRD の見出しがありません");
         }
         for (const feature of state.hearing.answers.features) {
@@ -725,7 +733,7 @@ export function validate(state, root) {
         if (state.design.frameworkReason.trim().length < 8) {
           fail("選定理由が短すぎます");
         }
-        if (!body.includes("# 設計書") || !body.includes(frameworkWord) || !body.includes(state.design.frameworkReason)) {
+        if (!hasDesignHeading(body) || !body.includes(frameworkWord) || !body.includes(state.design.frameworkReason)) {
           fail("設計書が確定時の内容と違います");
         }
       } catch (error) {

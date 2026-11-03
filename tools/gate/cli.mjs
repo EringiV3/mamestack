@@ -96,6 +96,28 @@ function printHelp() {
 `);
 }
 
+function placeProductTemplates(root) {
+  const templatesDir = path.resolve(import.meta.dirname, "../../templates");
+  const copies = [
+    ["prd.md", "docs/prd.md"],
+    ["design-doc.md", "docs/design-doc.md"],
+  ];
+  const placed = [];
+  for (const [name, destRel] of copies) {
+    const src = path.join(templatesDir, name);
+    const dest = path.join(root, destRel);
+    if (!fs.existsSync(src) || fs.existsSync(dest)) {
+      continue;
+    }
+    fs.mkdirSync(path.dirname(dest), { recursive: true });
+    fs.copyFileSync(src, dest);
+    placed.push(destRel);
+  }
+  if (placed.length > 0) {
+    console.log(`template: ${placed.join(", ")}`);
+  }
+}
+
 function main() {
   const args = parseArgs(process.argv.slice(2));
   const command = args._[0];
@@ -139,6 +161,7 @@ function main() {
     if (fs.existsSync(statePath(root))) {
       throw new Error("既に init 済みです");
     }
+    placeProductTemplates(root);
     const state = createState(name);
     commit(root, state);
     return;

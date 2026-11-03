@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -125,7 +126,7 @@ test("approval ではボットが設計書を確定できない", () => {
   const root = tempRoot();
   const ready = readyForDesign(root, "approval");
   const reason = "保存のない静的サイトなので Astro を使う";
-  write(root, "docs/02-design.md", designBody(reason));
+  write(root, ready.design.path, designBody(reason));
   assert.throws(
     () => approveDesign(ready, root, "bot", "astro", reason),
     /利用者/,
@@ -187,6 +188,40 @@ test("動的アプリに Astro は選べない", () => {
   assert.throws(() => approveDesign(state, root, "user", "astro", reason), /Void/);
 });
 
+test("新しいテンプレートの見出しでも PRD と設計書を承認できる", () => {
+  const root = tempRoot();
+  let state = hear(createState("demo"));
+  write(root, state.hearing.summaryPath, summaryBody());
+  state = acceptSummary(state, root, "user");
+  write(
+    root,
+    state.prd.path,
+    `# demo PRD（要求仕様書）\n\n${ANSWERS.what}\n営業時間を表示する\n売り切れをスマホで更新する\n`,
+  );
+  state = approvePrd(state, root, "user");
+  write(root, state.modeNotePath, "approval\n");
+  state = setMode(state, root, "approval", "user");
+  const reason = "保存のない静的サイトなので Astro を使う";
+  write(root, state.design.path, `# demo Design Doc\n\nAstro\n${reason}\n営業時間を表示する\n`);
+  const approved = approveDesign(state, root, "user", "astro", reason);
+  assert.equal(approved.phase, "tickets");
+  assert.deepEqual(validate(approved, root), []);
+});
+
+test("init は PRD と Design Doc のテンプレートを docs に置く", () => {
+  const root = tempRoot();
+  const cli = path.join(path.dirname(new URL(import.meta.url).pathname), "cli.mjs");
+  const result = spawnSync(process.execPath, [cli, "init", "--root", root, "--name", "demo"], {
+    encoding: "utf8",
+  });
+  assert.equal(result.status, 0, result.stderr);
+  const prd = fs.readFileSync(path.join(root, "docs/prd.md"), "utf8");
+  const design = fs.readFileSync(path.join(root, "docs/design-doc.md"), "utf8");
+  assert.match(prd, /エレベーターピッチ/);
+  assert.match(design, /Design Doc/);
+  assert.match(design, /wrangler/);
+});
+
 test("Wrangler は確認しても禁止で、cf deploy は確認が要る", () => {
   assert.equal(classifyCommand("npx wrangler deploy").class, "forbidden");
   assert.equal(classifyCommand("cf deploy").class, "confirm");
@@ -200,7 +235,7 @@ function readyForDesign(root, mode) {
   let state = hear(createState("demo"));
   write(root, "docs/00-hearing.md", summaryBody());
   state = acceptSummary(state, root, "user");
-  write(root, "docs/01-prd.md", `# PRD\n\ndemo\n${ANSWERS.what}\n営業時間を表示する\n売り切れをスマホで更新する\n`);
+  write(root, state.prd.path, `# PRD\n\ndemo\n${ANSWERS.what}\n営業時間を表示する\n売り切れをスマホで更新する\n`);
   state = approvePrd(state, root, "user");
   write(root, "docs/03-mode.md", `${mode} で進める。\n`);
   return setMode(state, root, mode, "user");
@@ -213,7 +248,7 @@ function designBody(reason) {
 function readyForTickets(root, mode) {
   const state = readyForDesign(root, mode);
   const reason = "保存のない静的サイトなので Astro を使う";
-  write(root, "docs/02-design.md", designBody(reason));
+  write(root, state.design.path, designBody(reason));
   const by = mode === "approval" ? "user" : "bot";
   return approveDesign(state, root, by, "astro", reason);
 }

@@ -28,7 +28,7 @@ npm test
 mamestack で始めて。AGENTS.md のヒアリングから、一問ずつ。
 ```
 
-English, short: clone, install, `npm test`. Then copy `AGENTS.md`, `.cursor/`, `templates/`, `tools/`, and the how-to files in `docs/` into your product. Do not copy `examples/`. Tell the agent to follow `AGENTS.md` and ask one hearing question at a time. The sample in `examples/kiosk-hours/` is a finished bakery hours page you can replay; it was not deployed, because Cloudflare’s `cf` beta does not build Astro 6+ and this sample has no Cloudflare account.
+English, short: clone, install, `npm test`. Then copy `AGENTS.md`, `.cursor/`, `templates/`, `tools/`, and the how-to files in `docs/` into your product. Do not copy `examples/`. `init` places `templates/prd.md` and `templates/design-doc.md` at `docs/prd.md` and `docs/design-doc.md`. Tell the agent to follow `AGENTS.md` and ask one hearing question at a time. The sample in `examples/kiosk-hours/` is a finished bakery hours page you can replay; it was not deployed, because Cloudflare’s `cf` beta does not build Astro 6+ and this sample has no Cloudflare account.
 
 ## 工程
 
@@ -48,9 +48,9 @@ flowchart TD
 ```
 
 1. **Hearing** — 何を作るか、誰が使うか、静的か動的か、機能は三つまで（v1 と後回し）、保存するデータ、見た目、独自ドメイン。一問ずつ。最後に要求まとめ一枚。
-2. **PRD** — テンプレートで書き、利用者が OK するまで進まない。
+2. **PRD** — `templates/prd.md` を `docs/prd.md` に写して埋める。不足だけを1回3問まで聞き、OK まで進まない。機能は三つまで。
 3. **モード** — full-auto はボットが設計・チケット・実装を進める。approval は設計書、粒度、各 PR を人が見る。どちらでも、データを壊す操作と費用が出る操作は確認する。
-4. **設計書** — サイトは Astro、アプリは Void。置き場所は Cloudflare。性能を先に書く。
+4. **設計書** — `templates/design-doc.md` を `docs/design-doc.md` に写して埋める。認証、課金、ドメインなど利用者にしか決められないことだけ聞く。サイトは Astro、アプリは Void。置き場所は Cloudflare。性能を先に書く。
 5. **チケット** — 受入条件とサイズ（S か M。L は分割）。approval では粒度の確認がある。
 6. **実装** — PR はチケット一枚につき一枚。Playwright で操作を録画する。動画の無い PR は未完了。
 7. **デプロイ** — 動画が揃ったところで `cf deploy`（サイト）か `void deploy`（アプリ）。未検証のコマンドは実行しない。
@@ -72,7 +72,7 @@ flowchart TD
 AGENTS.md                         エージェントが従う工程
 .cursor/rules/mamestack.mdc       常時の短い拘束
 .cursor/skills/mamestack/SKILL.md スキルの入口
-templates/                        要求まとめ、PRD、設計書、チケット、PR
+templates/                        要求まとめ、PRD、Design Doc、チケット、PR
 docs/                             採用、モード、選定、デプロイ、検証動画、出典
 tools/gate/                       工程を飛ばせない状態機械とテスト
 tools/verify-record/record.mjs    Playwright で検証動画を録る
