@@ -154,6 +154,15 @@ OK はモードに関係なく利用者からもらう。OK なら `approve-mock
 
 独自ドメインの購入コマンドは未検証である。購入は費用がかかるので、コマンド名が公式で分かるまで実行しない。
 
+## スキル
+
+手順の入口である。規則の本文はリンク先で、ここには写さない。
+
+- [scaffold](.cursor/skills/scaffold/SKILL.md) — 初期化と、空のままの本番公開
+- [verify-record](.cursor/skills/verify-record/SKILL.md) — 受入条件の録画
+- [deploy](.cursor/skills/deploy/SKILL.md) — 公開と本番 URL の確認
+- [pr-finish](.cursor/skills/pr-finish/SKILL.md) — PR を1枚閉じる
+
 ## コマンド早見
 
 工場リポジトリのルートで、Node.js 22.18 以上。

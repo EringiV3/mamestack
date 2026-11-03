@@ -5,7 +5,7 @@ description: Runs the mamestack factory for AI coding agents. Use when the user 
 
 # mamestack
 
-`AGENTS.md` が正本である。このスキルは着手時にそれと `docs/framework-selection.md`、`docs/cloudflare-deploy.md`、`docs/verification-video.md` を読むための入口である。
+`AGENTS.md` が正本である。このスキルは着手時にそれと `docs/framework-selection.md`、`docs/cloudflare-deploy.md`、`docs/verification-video.md` を読むための入口である。初期化、録画、公開、PR を閉じる作業は [scaffold](../scaffold/SKILL.md)、[verify-record](../verify-record/SKILL.md)、[deploy](../deploy/SKILL.md)、[pr-finish](../pr-finish/SKILL.md) を使う。
 
 1. プロダクトのルートで `node tools/gate/cli.mjs next --root <root>` を実行する。
 2. ヒアリングは表示された質問だけを一問ずつ聞き、答えを `answer` に渡す。サイト（static で保存なし）は要求まとめを書いて `accept-summary --by bot` し、空ページのデプロイから実装に入る。アプリは PRD の不足だけを1回3問まで聞く。自分だけが使うアプリは、収益モデル、プライシング、GTM、差別化、収益・グロース指標を聞かない。PRD の OK のあと、依存なしの HTML モックを `docs/mockup/` に置き、スマホ幅と PC 幅のスクショを見せて OK をもらう。モックはイメージと大まかな UI のすり合わせであり、見た目の正にはしない。実装 PR でモックとの差分は見ない。Design Doc は利用者にしか決められないことだけ聞く。答えが出ている項目は聞き直さない。アプリの T1 は空のアプリの本番公開で、その後の PR も本番に出せる状態を保つ。
