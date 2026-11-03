@@ -7,8 +7,9 @@ alwaysApply: true
 
 このリポジトリは工場の定義そのものである。プロダクトを作れと言われたら `AGENTS.md` に従う。ヒアリングは `node tools/gate/cli.mjs next --root <プロダクト>` が返す質問だけを一問ずつ聞く。PRD と Design Doc は、そのテンプレートの不足だけを聞く。工場定義の修正では工程を始めない。
 
-- 工程は hearing → prd → mockup → mode → design → tickets → implement → deploy。ゲートを通さず先のファイルだけ書かない。
-- モックの OK の直後に、full-auto か approval かを一度だけ聞く。モックの OK はモードに関係なく先にもらう。モックはイメージのすり合わせであり、見た目の正にはしない。
+- ヒアリングでサイトかアプリかを決める。サイト（Astro・保存なし）は要求まとめのあと実装とデプロイへ進み、PRD・モック・モード・設計書・チケット分割は飛ばす。アプリ（Void）は hearing → prd → mockup → mode → design → tickets → implement → deploy。ゲートを通さず先のファイルだけ書かない。
+- アプリのモックの OK の直後に、full-auto か approval かを一度だけ聞く。モックの OK はモードに関係なく先にもらう。モックはイメージのすり合わせであり、見た目の正にはしない。
+- アプリの最初のチケットは空のアプリの本番公開。サイトは空ページを先に出す。各 PR のあと本番に出せる状態を保つ。
 - full-auto でも、破壊的なデータ操作と費用のかかる操作は利用者の確認が要る。実行前に `node tools/gate/cli.mjs guard --command "<コマンド>"` を通す。
 - サイトは Astro、アプリケーションは Void。公開は Cloudflare。`cf` か Void CLI を使い、Wrangler は使わない。
 - チケット 1 枚につき PR 1 枚。検証動画の無い PR は完了ではない。

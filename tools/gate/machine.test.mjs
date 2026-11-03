@@ -17,6 +17,7 @@ import {
   confirmDeploy,
   confirmTickets,
   createState,
+  EMPTY_APP_TICKET_TITLE,
   setMode,
   validate,
 } from "./machine.mjs";
@@ -115,18 +116,19 @@ test("機能は3つまでで、v1 が一つは要る", () => {
 
 test("PRD の前にモードは決まらず、承認は利用者だけ", () => {
   const root = tempRoot();
-  let state = hear(createState("demo"));
-  write(root, "docs/00-hearing.md", summaryBody());
+  let state = hearDynamic(createState("demo"));
+  write(root, state.hearing.summaryPath, dynamicSummary());
   assert.throws(() => acceptSummary(state, root, "bot"), /利用者/);
   state = acceptSummary(state, root, "user");
   assert.equal(state.phase, "prd");
+  assert.equal(state.track, "app");
   assert.throws(() => setMode(state, root, "full-auto", "user"), /モック/);
 });
 
 test("モックの OK は利用者だけで、モードより前", () => {
   const root = tempRoot();
-  let state = hear(createState("demo"));
-  write(root, state.hearing.summaryPath, summaryBody());
+  let state = hearDynamic(createState("demo"));
+  write(root, state.hearing.summaryPath, dynamicSummary());
   state = acceptSummary(state, root, "user");
   write(root, state.prd.path, `# PRD\n\ndemo\n${ANSWERS.what}\n営業時間を表示する\n売り切れをスマホで更新する\n`);
   state = approvePrd(state, root, "user");
@@ -181,7 +183,15 @@ test("動画の無い PR は付けられない", () => {
 
 test("later の機能はチケットにできない", () => {
   const root = tempRoot();
-  const state = readyForTickets(root, "approval");
+  let state = readyForTickets(root, "approval");
+  write(root, "docs/tickets/T1.md", `T1\n${EMPTY_APP_TICKET_TITLE}\n受入条件\n本番 URL に空のアプリが出る\n`);
+  state = addTicket(state, root, {
+    id: "T1",
+    title: EMPTY_APP_TICKET_TITLE,
+    size: "S",
+    feature: "本番公開",
+    path: "docs/tickets/T1.md",
+  });
   write(root, "docs/tickets/T9.md", "T9\n売り切れをスマホで更新する\n受入条件\n");
   assert.throws(
     () =>
@@ -214,8 +224,8 @@ test("動的アプリに Astro は選べない", () => {
 
 test("新しいテンプレートの見出しでも PRD と設計書を承認できる", () => {
   const root = tempRoot();
-  let state = hear(createState("demo"));
-  write(root, state.hearing.summaryPath, summaryBody());
+  let state = hearDynamic(createState("demo"));
+  write(root, state.hearing.summaryPath, dynamicSummary());
   state = acceptSummary(state, root, "user");
   write(
     root,
@@ -227,11 +237,75 @@ test("新しいテンプレートの見出しでも PRD と設計書を承認で
   state = approveMockup(state, root, "user");
   write(root, state.modeNotePath, "approval\n");
   state = setMode(state, root, "approval", "user");
-  const reason = "保存のない静的サイトなので Astro を使う";
-  write(root, state.design.path, `# demo Design Doc\n\nAstro\n${reason}\n営業時間を表示する\n`);
-  const approved = approveDesign(state, root, "user", "astro", reason);
+  const reason = "保存があるのでアプリケーションとして扱う";
+  write(root, state.design.path, `# demo Design Doc\n\nVoid\n${reason}\n営業時間を表示する\n`);
+  const approved = approveDesign(state, root, "user", "void", reason);
   assert.equal(approved.phase, "tickets");
   assert.deepEqual(validate(approved, root), []);
+});
+
+test("サイトは承認を待たず実装に入り、PR の動画が要る", () => {
+  const root = tempRoot();
+  let state = hear(createState("demo"));
+  write(root, state.hearing.summaryPath, summaryBody());
+  assert.throws(() => acceptSummary(state, root, "user"), /bot/);
+  state = acceptSummary(state, root, "bot");
+  assert.equal(state.phase, "implement");
+  assert.equal(state.track, "site");
+  assert.equal(state.deploy.milestones[0].command, "cf deploy");
+  write(
+    root,
+    "docs/prs/T1.md",
+    "検証動画: recordings/t1.webm\n録画コマンド: node tools/verify-record/record.mjs\n終了コード: 0\n",
+  );
+  assert.throws(() => attachPr(state, root, "T1", "docs/prs/T1.md", "recordings/t1.webm"), /ありません/);
+  fakeVideo(root, "recordings/t1.webm");
+  state = attachPr(state, root, "T1", "docs/prs/T1.md", "recordings/t1.webm");
+  assert.equal(state.phase, "deploy");
+  assert.deepEqual(validate(state, root), []);
+});
+
+test("自分用アプリの PRD は該当なし（自分用）が要る", () => {
+  const root = tempRoot();
+  let state = answer(createState("demo"), "what", ANSWERS.what);
+  state = answer(state, "who", "自分だけ。使う人も自分。");
+  state = answer(state, "shape", "dynamic");
+  state = answer(state, "features", JSON.stringify(FEATURES));
+  state = answer(state, "data", "売り切れフラグをリクエストごとに読む");
+  state = answer(state, "look", ANSWERS.look);
+  state = answer(state, "domain", ANSWERS.domain);
+  write(
+    root,
+    state.hearing.summaryPath,
+    `# 要求まとめ\n自分だけ。使う人も自分。\n${ANSWERS.what}\ndynamic\n${FEATURES[0].name} ${FEATURES[0].release}\n${FEATURES[1].name} ${FEATURES[1].release}\n売り切れフラグをリクエストごとに読む\n${ANSWERS.look}\n${ANSWERS.domain}\n`,
+  );
+  state = acceptSummary(state, root, "user");
+  write(root, state.prd.path, `# PRD\n\n${ANSWERS.what}\n営業時間を表示する\n売り切れをスマホで更新する\n`);
+  assert.throws(() => approvePrd(state, root, "user"), /該当なし（自分用）/);
+  write(
+    root,
+    state.prd.path,
+    `# PRD\n\n${ANSWERS.what}\n営業時間を表示する\n売り切れをスマホで更新する\n該当なし（自分用）\n`,
+  );
+  state = approvePrd(state, root, "user");
+  assert.equal(state.phase, "mockup");
+});
+
+test("アプリの最初のチケットは空の本番公開", () => {
+  const root = tempRoot();
+  const state = readyForTickets(root, "approval");
+  write(root, "docs/tickets/T1.md", "T1\n営業時間を表示する\n受入条件\n店名と時間が見える\n");
+  assert.throws(
+    () =>
+      addTicket(state, root, {
+        id: "T1",
+        title: "営業時間を表示する",
+        size: "S",
+        feature: "営業時間を表示する",
+        path: "docs/tickets/T1.md",
+      }),
+    /空のアプリ/,
+  );
 });
 
 test("init は PRD と Design Doc のテンプレートを docs に置く", () => {
@@ -259,8 +333,8 @@ test("Wrangler は確認しても禁止で、cf deploy は確認が要る", () =
 });
 
 function readyForDesign(root, mode) {
-  let state = hear(createState("demo"));
-  write(root, "docs/00-hearing.md", summaryBody());
+  let state = hearDynamic(createState("demo"));
+  write(root, state.hearing.summaryPath, dynamicSummary());
   state = acceptSummary(state, root, "user");
   write(root, state.prd.path, `# PRD\n\ndemo\n${ANSWERS.what}\n営業時間を表示する\n売り切れをスマホで更新する\n`);
   state = approvePrd(state, root, "user");
@@ -276,35 +350,50 @@ function designBody(reason) {
 
 function readyForTickets(root, mode) {
   const state = readyForDesign(root, mode);
-  const reason = "保存のない静的サイトなので Astro を使う";
-  write(root, state.design.path, designBody(reason));
+  const reason = "保存があるのでアプリケーションとして扱う";
+  write(root, state.design.path, `# 設計書\n\nVoid\n${reason}\n営業時間を表示する\n`);
   const by = mode === "approval" ? "user" : "bot";
-  return approveDesign(state, root, by, "astro", reason);
+  return approveDesign(state, root, by, "void", reason);
 }
 
 function readyToImplement(root, mode) {
   let state = readyForTickets(root, mode);
-  write(root, "docs/tickets/T1.md", "T1\n営業時間を表示する\n受入条件\n店名と時間が見える\n");
+  write(root, "docs/tickets/T1.md", `T1\n${EMPTY_APP_TICKET_TITLE}\n受入条件\n本番 URL に空のアプリが出る\n`);
   state = addTicket(state, root, {
     id: "T1",
+    title: EMPTY_APP_TICKET_TITLE,
+    size: "S",
+    feature: "本番公開",
+    path: "docs/tickets/T1.md",
+  });
+  write(root, "docs/tickets/T2.md", "T2\n営業時間を表示する\n受入条件\n店名と時間が見える\n");
+  state = addTicket(state, root, {
+    id: "T2",
     title: "営業時間を表示する",
     size: "S",
     feature: "営業時間を表示する",
-    path: "docs/tickets/T1.md",
+    path: "docs/tickets/T2.md",
   });
   const by = mode === "approval" ? "user" : "bot";
   return confirmTickets(state, by);
 }
 
 function readyToDeploy(root, mode) {
-  const state = readyToImplement(root, mode);
+  let state = readyToImplement(root, mode);
   write(
     root,
     "docs/prs/T1.md",
     "T1\n検証動画: recordings/t1.webm\n録画コマンド: node tools/verify-record/record.mjs\n終了コード: 0\n",
   );
+  write(
+    root,
+    "docs/prs/T2.md",
+    "T2\n検証動画: recordings/t2.webm\n録画コマンド: node tools/verify-record/record.mjs\n終了コード: 0\n",
+  );
   fakeVideo(root, "recordings/t1.webm");
-  return attachPr(state, root, "T1", "docs/prs/T1.md", "recordings/t1.webm");
+  fakeVideo(root, "recordings/t2.webm");
+  state = attachPr(state, root, "T1", "docs/prs/T1.md", "recordings/t1.webm");
+  return attachPr(state, root, "T2", "docs/prs/T2.md", "recordings/t2.webm");
 }
 
 function hearDynamic(state) {
