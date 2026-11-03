@@ -1,0 +1,19 @@
+{
+  "name": "mamestack",
+  "private": true,
+  "type": "module",
+  "description": "個人開発のソフトウェア工場定義。ヒアリングから Cloudflare 公開までを、飛ばさずに再現する。",
+  "engines": {
+    "node": ">=22.18"
+  },
+  "scripts": {
+    "test": "node --test tools/gate/machine.test.mjs && node tools/gate/cli.mjs check --root examples/kiosk-hours",
+    "gate": "node tools/gate/cli.mjs",
+    "record": "node tools/verify-record/record.mjs",
+    "example:record": "node tools/verify-record/record.mjs --serve examples/kiosk-hours/site --port 41773 --scenario examples/kiosk-hours/scenarios/t1-hours.json --out examples/kiosk-hours/recordings/t1-hours.webm && node tools/verify-record/record.mjs --serve examples/kiosk-hours/site --port 41773 --scenario examples/kiosk-hours/scenarios/t2-bread.json --out examples/kiosk-hours/recordings/t2-bread.webm",
+    "example:check": "node tools/gate/cli.mjs check --root examples/kiosk-hours"
+  },
+  "dependencies": {
+    "playwright": "^1.58.2"
+  }
+}

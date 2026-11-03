@@ -1,0 +1,17 @@
+{
+  "name": "T2 今日焼いたパン",
+  "steps": [
+    { "type": "goto", "path": "/" },
+    { "type": "wait", "ms": 300 },
+    { "type": "assertHidden", "selector": "#bread-list" },
+    { "type": "click", "selector": "#bread-toggle" },
+    { "type": "assertVisible", "selector": "#bread-list" },
+    { "type": "assertText", "selector": "#bread-list", "text": "カンパーニュ" },
+    { "type": "assertText", "selector": "#bread-list", "text": "レーズン" },
+    { "type": "assertText", "selector": "#bread-list", "text": "塩バターロール" },
+    { "type": "wait", "ms": 700 },
+    { "type": "click", "selector": "#bread-toggle" },
+    { "type": "assertHidden", "selector": "#bread-list" },
+    { "type": "wait", "ms": 500 }
+  ]
+}

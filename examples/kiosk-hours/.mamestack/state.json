@@ -1,0 +1,85 @@
+{
+  "version": 1,
+  "name": "麦畑ベーカリー",
+  "phase": "done",
+  "mode": "approval",
+  "hearing": {
+    "summaryPath": "docs/00-hearing.md",
+    "summaryAccepted": true,
+    "answers": {
+      "what": "近所のパン屋が、今日の営業時間と今日焼いたパンを、店頭の紙の代わりに一枚のページで見せる。",
+      "who": "使う人は朝に店の前を通る客。使わない人は仕込み中の店主。",
+      "shape": "static",
+      "features": [
+        {
+          "name": "本日の営業時間を表示",
+          "release": "v1"
+        },
+        {
+          "name": "今日焼いたパンを開閉する",
+          "release": "v1"
+        },
+        {
+          "name": "店主がスマホから売り切れを更新する",
+          "release": "later"
+        }
+      ],
+      "data": "なし。v1 の営業時間とパンの名前はページに書く。",
+      "look": "生成りの紙、墨と煉瓦色。写真は使わない。余白を広く、看板のように大きな時間を置く。",
+      "domain": "なし。v1 は配れる URL があれば足りる。"
+    }
+  },
+  "prd": {
+    "path": "docs/01-prd.md",
+    "approved": true,
+    "approvedBy": "user"
+  },
+  "modeNotePath": "docs/03-mode.md",
+  "design": {
+    "path": "docs/02-design.md",
+    "approved": true,
+    "approvedBy": "user",
+    "framework": "astro",
+    "frameworkReason": "保存のない静的サイトなので、規則どおり Astro にする。"
+  },
+  "tickets": {
+    "confirmed": true,
+    "confirmedBy": "user",
+    "items": [
+      {
+        "id": "T1",
+        "title": "本日の営業時間を表示",
+        "size": "S",
+        "feature": "本日の営業時間を表示",
+        "path": "docs/tickets/T1.md",
+        "pr": {
+          "path": "docs/prs/T1.md",
+          "video": "recordings/t1-hours.webm"
+        }
+      },
+      {
+        "id": "T2",
+        "title": "今日焼いたパンを開閉する",
+        "size": "S",
+        "feature": "今日焼いたパンを開閉する",
+        "path": "docs/tickets/T2.md",
+        "pr": {
+          "path": "docs/prs/T2.md",
+          "video": "recordings/t2-bread.webm"
+        }
+      }
+    ]
+  },
+  "deploy": {
+    "milestones": [
+      {
+        "id": "v1",
+        "command": "cf deploy",
+        "decision": "skip",
+        "reason": "Cloudflare の資格情報が無く、Astro 6 以降は cf ベータでビルドできないと公式にあるため実行しない。",
+        "confirmedBy": "user",
+        "executed": false
+      }
+    ]
+  }
+}

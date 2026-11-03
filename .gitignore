@@ -1,0 +1,10 @@
+node_modules/
+.env
+.env.*
+.cloudflare/
+dist/
+test-results/
+playwright-report/
+agent-tools/
+*.log
+.DS_Store

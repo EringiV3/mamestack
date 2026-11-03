@@ -1,0 +1,12 @@
+{
+  "name": "T1 本日の営業時間",
+  "steps": [
+    { "type": "goto", "path": "/" },
+    { "type": "wait", "ms": 400 },
+    { "type": "assertText", "selector": "h1", "text": "麦畑ベーカリー" },
+    { "type": "assertText", "selector": "#hours", "text": "8:00–15:00" },
+    { "type": "assertText", "selector": "#hours", "text": "水曜は焼かない" },
+    { "type": "assertHidden", "selector": "#bread-list" },
+    { "type": "wait", "ms": 800 }
+  ]
+}
