@@ -114,7 +114,7 @@ OK はモードに関係なく利用者からもらう。OK なら `approve-mock
 
 ## 6. チケット
 
-最初の1枚は必ず T1「空のアプリをCloudflare本番に出す」。中身は、リポジトリ作成、Void 導入、必要な D1 等のリソース作成とバインディング、`cf` または Void CLI でのデプロイ、本番 URL での表示確認。資源の作成とデプロイは利用者の確認が要る。この1枚の `feature` はヒアリングの機能名でなくてよい。
+最初の1枚は必ず T1「空のアプリをCloudflare本番に出す」。これは設計とチケットの確定のあと、`implement` で行う。中身は、リポジトリ作成、Void の導入（`void init` を含む）、必要な D1 等のリソース作成とバインディング、`cf` または Void CLI でのデプロイ、本番 URL での表示確認。資源の作成とデプロイは利用者の確認が要る。この1枚の `feature` はヒアリングの機能名でなくてよい。空の公開の記録は [docs/cloudflare-deploy.md](docs/cloudflare-deploy.md)。
 
 その後、v1 の機能ごとに `templates/ticket.md` で `docs/tickets/T2.md` のように書き、`add-ticket` する。
 

@@ -321,6 +321,16 @@ test("空の公開は実装中に記録でき、v1 は動画が揃うまで拒�
   assert.equal(recorded.phase, "implement");
 });
 
+test("空の公開はチケット確定前にはできない", () => {
+  const root = tempRoot();
+  const state = readyForTickets(root, "approval");
+  assert.equal(state.phase, "tickets");
+  assert.throws(
+    () => confirmDeploy(state, "empty", "run", "user", "設計の直後に空のアプリを出したい"),
+    /implement/,
+  );
+});
+
 test("アプリの最初のチケットは空の本番公開", () => {
   const root = tempRoot();
   const state = readyForTickets(root, "approval");
