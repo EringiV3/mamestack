@@ -29,7 +29,7 @@ mamestack はアプリのテンプレートではなく、エージェントが�
    mamestack で始めて。AGENTS.md のヒアリングから、一問ずつ。
    ```
 
-5. エージェントは `node tools/gate/cli.mjs init --root . --name <名前>` のあと、ヒアリングは `next` の質問だけを聞く。`init` は、無いときに `docs/prd.md` と `docs/design-doc.md` をテンプレートから置く。既にあるファイルは上書きしない。
+5. エージェントは `node tools/gate/cli.mjs init --root . --name <名前>` のあと、ヒアリングは `next` の質問だけを聞く。`init` は、無いときに `docs/prd.md` と `docs/design-doc.md` をテンプレートから置く。既にあるファイルは上書きしない。`docs/mockup/` は init では作らず、モック工程で置く。
 
 コピーの代わりに、このリポジトリを submodule や subtree で `vendor/mamestack` に置いてもよい。その場合、プロダクトの `AGENTS.md` は「`vendor/mamestack/AGENTS.md` に従い、ゲートは `node vendor/mamestack/tools/gate/cli.mjs` を、`--root` はこのプロダクトを指す」と一行で委譲する。状態ファイルはプロダクト側の `.mamestack/` にできる。テンプレートのパスは工場側を読む、と委譲の文に書く。
 

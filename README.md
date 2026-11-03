@@ -2,7 +2,7 @@
 
 個人開発のための、再現できるソフトウェア工場である。AI コーディングボット（まず Grok Bot と Cursor のエージェント）が、ヒアリングから Cloudflare への公開までを、決まった順で進める。正本はこのリポジトリで、会話の記憶ではない。
 
-A version-controlled factory for personal software. An agent interviews, writes a PRD, asks once whether to run full-auto or approval mode, designs, splits tickets, opens one pull request per ticket with a screen recording, and deploys to Cloudflare only after an explicit confirmation. Websites use Astro. Applications use Void. The deploy CLI is `cf` or the Void CLI, not Wrangler.
+A version-controlled factory for personal software. An agent interviews, writes a PRD, builds a static HTML mock and gets OK, asks once whether to run full-auto or approval mode, designs, splits tickets, opens one pull request per ticket with a screen recording, and deploys to Cloudflare only after an explicit confirmation. Websites use Astro. Applications use Void. The deploy CLI is `cf` or the Void CLI, not Wrangler.
 
 This repository is the factory itself. It is not a hosted app and not an npm library. `npm install` only installs Playwright, which the verification-video script needs. License: [MIT](LICENSE).
 
@@ -38,22 +38,24 @@ English, short: clone, install, `npm test`. Then copy `AGENTS.md`, `.cursor/`, `
 flowchart TD
   H[1. Hearing 一問ずつ] --> S[要求まとめ 一枚]
   S --> P[2. PRD を見せて OK を待つ]
-  P --> M[3. full-auto か approval かを一度だけ聞く]
-  M --> D[4. 設計書 Astro か Void か]
-  D --> T[5. チケット 受入条件とサイズ]
-  T --> I[6. チケットごとに PR と検証動画]
-  I --> Y[7. 区切りで Cloudflare へ]
+  P --> K[3. 静的 HTML モックを見せて OK を待つ]
+  K --> M[4. full-auto か approval かを一度だけ聞く]
+  M --> D[5. 設計書 Astro か Void か]
+  D --> T[6. チケット 受入条件とサイズ]
+  T --> I[7. チケットごとに PR と検証動画]
+  I --> Y[8. 区切りで Cloudflare へ]
   M -.-> C[破壊的操作と費用はモードに関係なく確認]
   C -.-> Y
 ```
 
 1. **Hearing** — 何を作るか、誰が使うか、静的か動的か、機能は三つまで（v1 と後回し）、保存するデータ、見た目、独自ドメイン。一問ずつ。最後に要求まとめ一枚。
 2. **PRD** — `templates/prd.md` を `docs/prd.md` に写して埋める。不足だけを1回3問まで聞き、OK まで進まない。機能は三つまで。
-3. **モード** — full-auto はボットが設計・チケット・実装を進める。approval は設計書、粒度、各 PR を人が見る。どちらでも、データを壊す操作と費用が出る操作は確認する。
-4. **設計書** — `templates/design-doc.md` を `docs/design-doc.md` に写して埋める。認証、課金、ドメインなど利用者にしか決められないことだけ聞く。サイトは Astro、アプリは Void。置き場所は Cloudflare。性能を先に書く。
-5. **チケット** — 受入条件とサイズ（S か M。L は分割）。approval では粒度の確認がある。
-6. **実装** — PR はチケット一枚につき一枚。Playwright で操作を録画する。動画の無い PR は未完了。
-7. **デプロイ** — 動画が揃ったところで `cf deploy`（サイト）か `void deploy`（アプリ）。未検証のコマンドは実行しない。
+3. **モック** — PRD の画面フローと P0 だけを、依存なしの HTML で `docs/mockup/` に置く。スマホ幅と PC 幅のスクショを見せ、OK をもらう。OK はモードに関係なく必要。イメージと大まかな UI のすり合わせであり、見た目の正にはしない。
+4. **モード** — full-auto はボットが設計・チケット・実装を進める。approval は設計書、粒度、各 PR を人が見る。どちらでも、データを壊す操作と費用が出る操作は確認する。
+5. **設計書** — `templates/design-doc.md` を `docs/design-doc.md` に写して埋める。認証、課金、ドメインなど利用者にしか決められないことだけ聞く。モックは参考程度。サイトは Astro、アプリは Void。置き場所は Cloudflare。性能を先に書く。
+6. **チケット** — 受入条件とサイズ（S か M。L は分割）。approval では粒度の確認がある。
+7. **実装** — PR はチケット一枚につき一枚。Playwright で操作を録画する。動画の無い PR は未完了。モックとの差分は見ない。
+8. **デプロイ** — 動画が揃ったところで `cf deploy`（サイト）か `void deploy`（アプリ）。未検証のコマンドは実行しない。
 
 ## フレームワーク
 
@@ -112,11 +114,12 @@ mamestack で始めて。AGENTS.md のヒアリングから、一問ずつ。
 1. この README の図を見せ、正本は会話ではなく git だと言う。
 2. 麦畑のヒアリングを、一問ずつゲートが拒む様子とともに。
 3. PRD を出して、OK まで打たない。
-4. full-auto と approval の違い。費用と削除はどちらでも止まると言う。
-5. 設計書で Astro に決まること。`cf` が Astro 6 以降をビルドできない、と公式にあるので公開しない、という判断。
-6. チケット二枚。later の「スマホで売り切れ」はゲートが登録を拒む。
-7. `npm run example:record` のターミナルと、できた WebM。PR テンプレートの三行。
-8. `guard` が `cf deploy` を confirm にし、`wrangler` を forbidden にするところ。
+4. 静的 HTML モックを、スマホ幅と PC 幅のスクショとともに見せ、OK まで打たない。
+5. full-auto と approval の違い。費用と削除はどちらでも止まると言う。
+6. 設計書で Astro に決まること。`cf` が Astro 6 以降をビルドできない、と公式にあるので公開しない、という判断。
+7. チケット二枚。later の「スマホで売り切れ」はゲートが登録を拒む。
+8. `npm run example:record` のターミナルと、できた WebM。PR テンプレートの三行。
+9. `guard` が `cf deploy` を confirm にし、`wrangler` を forbidden にするところ。
 
 ## 確認済みと、まだ実行していないこと
 
