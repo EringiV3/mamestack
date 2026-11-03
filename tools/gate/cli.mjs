@@ -5,6 +5,7 @@ import {
   addTicket,
   answer,
   approveDesign,
+  approveMockup,
   approvePrd,
   attachPr,
   classifyCommand,
@@ -85,6 +86,7 @@ function printHelp() {
   answer --root <dir> --key <key> --text <text>
   accept-summary --root <dir> --by user
   approve-prd --root <dir> --by user
+  approve-mockup --root <dir> --by user
   set-mode --root <dir> --mode full-auto|approval --by user
   approve-design --root <dir> --by user|bot --framework astro|void --reason <text>
   add-ticket --root <dir> --id T1 --title <text> --size S|M --feature <name> --file <path>
@@ -198,6 +200,10 @@ function main() {
   }
   if (command === "approve-prd") {
     commit(root, approvePrd(state, root, args.by));
+    return;
+  }
+  if (command === "approve-mockup") {
+    commit(root, approveMockup(state, root, args.by));
     return;
   }
   if (command === "set-mode") {

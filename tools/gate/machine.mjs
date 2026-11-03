@@ -4,6 +4,7 @@ import path from "node:path";
 export const PHASES = [
   "hearing",
   "prd",
+  "mockup",
   "mode",
   "design",
   "tickets",
@@ -72,6 +73,7 @@ export function createState(name) {
       },
     },
     prd: { path: "docs/prd.md", approved: false, approvedBy: null },
+    mockup: { path: "docs/mockup/index.html", approved: false, approvedBy: null },
     modeNotePath: "docs/03-mode.md",
     design: {
       path: "docs/design-doc.md",
@@ -192,6 +194,37 @@ function readRequired(root, rel) {
   return fs.readFileSync(abs, "utf8");
 }
 
+function assertMockup(root, state) {
+  const rel = state.mockup.path;
+  const html = readRequired(root, rel);
+  if (!/<!doctype html|<html[\s>]/i.test(html)) {
+    throw new Error("モックの index.html は HTML 文書にしてください");
+  }
+  const dirRel = path.dirname(rel);
+  const dirAbs = resolveInside(root, dirRel);
+  for (const entry of fs.readdirSync(dirAbs, { recursive: true })) {
+    const abs = path.join(dirAbs, String(entry));
+    if (!fs.statSync(abs).isFile() || !/\.(html|css|js)$/i.test(abs)) {
+      continue;
+    }
+    const text = fs.readFileSync(abs, "utf8");
+    if (/<(?:script|link)\b[^>]*\b(?:src|href)\s*=\s*["']https?:/i.test(text)) {
+      throw new Error("モックに外部の script や stylesheet は置けません");
+    }
+  }
+  for (const match of html.matchAll(/\bhref\s*=\s*["']([^"']+\.html)["']/gi)) {
+    const href = match[1].split(/[?#]/)[0];
+    if (/^https?:/i.test(href)) {
+      throw new Error("モックの画面リンクは docs/mockup の中だけです");
+    }
+    const target = path.posix.normalize(path.posix.join(dirRel.split(path.sep).join("/"), href));
+    if (target !== dirRel && !target.startsWith(`${dirRel}/`)) {
+      throw new Error("モックの画面リンクは docs/mockup の中だけです");
+    }
+    readRequired(root, target);
+  }
+}
+
 export function answer(state, key, text) {
   if (state.phase !== "hearing") {
     throw new Error("ヒアリングは終わっています");
@@ -284,15 +317,28 @@ export function approvePrd(state, root, by) {
   }
   return {
     ...state,
-    phase: "mode",
+    phase: "mockup",
     prd: { ...state.prd, approved: true, approvedBy: "user" },
+  };
+}
+
+export function approveMockup(state, root, by) {
+  assertUser(by, "モックの承認");
+  if (state.phase !== "mockup") {
+    throw new Error("モックを承認できるのは mockup の間だけです");
+  }
+  assertMockup(root, state);
+  return {
+    ...state,
+    phase: "mode",
+    mockup: { ...state.mockup, approved: true, approvedBy: "user" },
   };
 }
 
 export function setMode(state, root, mode, by) {
   assertUser(by, "モードの選択");
   if (state.phase !== "mode") {
-    throw new Error("モードを決められるのは、PRD 承認の直後だけです");
+    throw new Error("モードを決められるのは、モック承認の直後だけです");
   }
   if (mode !== "full-auto" && mode !== "approval") {
     throw new Error("mode は full-auto か approval です");
@@ -615,6 +661,12 @@ export function nextAction(state) {
         message:
           "templates/prd.md を docs/prd.md に写して埋めてください。init で置いてあればそれを使います。エレベーターピッチ、ターゲットと課題、成功指標、機能要件（P0/P1/P2/Won't）、画面フロー、マネタイズ・コスト、GTM を埋めます。答えが出ている項目は聞き直さず、不足だけを1回3問まで聞いてください。機能は最大3つです。削らず、不要な箇所は「該当なし」と書きます。全文を見せ、OK なら approve-prd --by user を実行します。",
       };
+    case "mockup":
+      return {
+        code: "write-mockup",
+        message:
+          "PRD の画面フローと P0 の画面だけを、依存なしの HTML と CSS で docs/mockup/ に置いてください。index.html から各画面へリンクします。JS は画面切替など最小限、データはダミーです。スマホ幅と PC 幅のスクショを撮り、利用者に見せてください。修正が来たら直して再提示し、仕様に関わる変更は docs/prd.md にも反映します。機能は足しません。4つ目は次の版のメモとして PRD の Won't に残します。これは全体のイメージと大まかな UI のすり合わせで、見た目の正にはしません。OK はモードに関係なく利用者からもらいます。OK なら approve-mockup --by user を実行します。",
+      };
     case "mode":
       return {
         code: "ask-mode",
@@ -624,7 +676,7 @@ export function nextAction(state) {
       return {
         code: "write-design",
         message:
-          "templates/design-doc.md を docs/design-doc.md に写して埋めてください。init で置いてあればそれを使います。各セクションを埋め、利用者にしか決められないこと（認証、課金、ドメインなど）だけ聞いてください。答えが出ている項目は聞き直さない。削らず、不要な箇所は「該当なし」と書きます。サイトは Astro、アプリケーションは Void、公開先は Cloudflare です。テンプレートの文言は残します。approval なら利用者の OK を待って approve-design --by user。full-auto なら approve-design --by bot。選定理由は設計書と同じ文を --reason に渡します。",
+          "templates/design-doc.md を docs/design-doc.md に写して埋めてください。init で置いてあればそれを使います。各セクションを埋め、利用者にしか決められないこと（認証、課金、ドメインなど）だけ聞いてください。答えが出ている項目は聞き直さない。削らず、不要な箇所は「該当なし」と書きます。モックは参考程度に見てください。見た目の正にはしません。サイトは Astro、アプリケーションは Void、公開先は Cloudflare です。テンプレートの文言は残します。approval なら利用者の OK を待って approve-design --by user。full-auto なら approve-design --by bot。選定理由は設計書と同じ文を --reason に渡します。",
       };
     case "tickets":
       return {
@@ -636,7 +688,7 @@ export function nextAction(state) {
       const open = state.tickets.items.find((item) => !item.pr);
       return {
         code: "implement",
-        message: `チケット ${open?.id ?? "?"} だけを実装し、PR を1枚作り、検証動画を録画してください。動画の無い PR は完了になりません。approval なら PR ごとに利用者の OK を取ります。`,
+        message: `チケット ${open?.id ?? "?"} だけを実装し、PR を1枚作り、検証動画を録画してください。動画の無い PR は完了になりません。モックとの差分確認はしません。approval なら PR ごとに利用者の OK を取ります。`,
       };
     }
     case "deploy":
@@ -662,9 +714,9 @@ export function validate(state, root) {
     fail(`未知の phase です: ${state.phase}`);
     return errors;
   }
-  if (state.phase === "hearing" || state.phase === "prd") {
+  if (state.phase === "hearing" || state.phase === "prd" || state.phase === "mockup") {
     if (state.mode !== null) {
-      fail("モードは PRD 承認の後にだけ決まります");
+      fail("モードはモック承認の後にだけ決まります");
     }
   } else if (state.phase === "mode") {
     if (state.mode !== null) {
@@ -708,6 +760,18 @@ export function validate(state, root) {
             fail(`PRD から機能「${feature.name}」が消えました`);
           }
         }
+      } catch (error) {
+        fail(error instanceof Error ? error.message : String(error));
+      }
+    }
+  }
+  // モック工程の前に閉じたサンプルは mockup キーを持たない。
+  if (state.mockup && past(state, "mockup")) {
+    if (!state.mockup.approved || state.mockup.approvedBy !== "user") {
+      fail("モックが利用者に承認されていません");
+    } else {
+      try {
+        assertMockup(root, state);
       } catch (error) {
         fail(error instanceof Error ? error.message : String(error));
       }
