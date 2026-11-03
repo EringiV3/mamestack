@@ -69,7 +69,7 @@ R2 はダッシュボードで一度有効にする。無料枠でも請求情�
 
 ## サイト
 
-ヒアリングの直後に行う。`npm create astro@5.3.1 -- <dir> --yes --no-git --install --skip-houston`。`scripts.deploy` は `wrangler deploy`。`npm i -D -E wrangler@4.156.2` と `npm i -D -E playwright@1.64.1`。
+`.mamestack/state.json` が無ければ、先に `node tools/gate/cli.mjs init --root <root> --name <名前>`。ヒアリングの直後に `npm create astro@5.3.1 -- <dir> --yes --no-git --install --skip-houston`。`npm i -D -E wrangler@4.156.2` と `npm i -D -E playwright@1.64.1`。`scripts.deploy` は `astro build && wrangler deploy`。`wrangler.jsonc` は [scaffold](../scaffold/SKILL.md) が `name` と `assets.directory` `"./dist"` だけを書く。
 
 ## 共通
 

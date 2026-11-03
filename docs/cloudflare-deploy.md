@@ -34,7 +34,7 @@ npm の `cf@1.0.0-beta.27`（homepage は `github.com/cloudflare/cf`）が 2026-
 
 したがってサイトは `cf deploy` を使わない。空ページから本番へは、Cloudflare が Astro 向けに案内している Wrangler で出す。
 
-生成リポジトリでは、このコマンドを `package.json` の `deploy` に書き、`npm run deploy` で実行する。`npx` で最新を取りに行かない。
+生成リポジトリでは `npm run deploy` で実行する。サイトの script は `astro build && wrangler deploy`。`wrangler.jsonc` は `name` と `assets.directory` `"./dist"` だけを先に書く。アダプターは入れない。`wrangler` は `4.156.2` を `-E` で固定する。`npx` で最新を取りに行かない。
 
 ```sh
 npm run deploy
@@ -62,7 +62,7 @@ void project rollback
 
 生成したアプリの `scripts.deploy` は `void deploy --platform cloudflare`。呼び出しは `npm run deploy`。`void init --deploy none` のあと、プラットフォーム無しの `void deploy` では公開先が決まらない。
 
-`void deploy` は資源を作り、Worker を上げる前に D1 のマイグレーションを適用する。失敗しても適用が残ることがある。公開の前に `void db generate` を実行する。認証のテーブルも出る。`db/migrations` と `void.lock.json` をコミットする。初回と、マイグレーションがあるたびに確認する。Sandbox は Workers Paid と Containers が要る、と Deployment ページにある。スターターでそれを選ばない。
+`void deploy` は資源を作り、Worker を上げる前に D1 のマイグレーションを適用する。失敗しても適用が残ることがある。公開の前に `void db generate` を実行する。認証のテーブルも出る。`db/migrations` は公開の前にコミットする。`void.lock.json` は初回デプロイの直後にできるので、そのときコミットする。初回と、マイグレーションがあるたびに確認する。Sandbox は Workers Paid と Containers が要る、と Deployment ページにある。スターターでそれを選ばない。
 
 Void が作った Worker、D1、KV、R2 を Void の外で消さない。消してしまったときは、`void.lock.json` の古い項目を除き、生成された `.void-wrangler.jsonc` と `dist` と `.cloudflare` を消してから出し直す。`--provision` では戻らない。エラーは 10041。
 

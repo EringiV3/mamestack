@@ -126,6 +126,20 @@ async function runStep(page, step, baseUrl) {
     case "assertHidden":
       await page.locator(step.selector).waitFor({ state: "hidden", timeout: 5000 });
       return;
+    case "assertStatus": {
+      const target = typeof step.path === "string" ? new URL(step.path, baseUrl).toString() : step.url;
+      if (typeof target !== "string") {
+        throw new Error("assertStatus には path か url が要ります");
+      }
+      if (typeof step.status !== "number") {
+        throw new Error("assertStatus には status が要ります");
+      }
+      const response = await page.request.get(target);
+      if (response.status() !== step.status) {
+        throw new Error(`${target} は ${response.status()}。期待は ${step.status}`);
+      }
+      return;
+    }
     default:
       assertNever(type);
   }

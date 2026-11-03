@@ -128,7 +128,7 @@ OK はモードに関係なく利用者からもらう。OK なら `approve-mock
 
 ### サイト
 
-最初に空ページを出す。記録は [docs/cloudflare-deploy.md](docs/cloudflare-deploy.md) の空の公開（`confirm-deploy --milestone empty`）。`v1` は検証動画のあと。出た URL を見てから中身を作り、PR を1枚と検証動画を残して `attach-pr` する。
+`.mamestack/state.json` が無ければ `node tools/gate/cli.mjs init --root <root> --name <名前>`。最初に空ページを出す。記録は [docs/cloudflare-deploy.md](docs/cloudflare-deploy.md) の空の公開（`confirm-deploy --milestone empty`）。`v1` は検証動画のあと。出た URL を見てから中身を作り、PR を1枚と検証動画を残して `attach-pr` する。
 
 ### アプリ
 
