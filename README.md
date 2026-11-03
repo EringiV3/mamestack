@@ -52,7 +52,7 @@ flowchart TD
 ```
 
 1. **Hearing** — 何を作るか、誰が使うか、サイトかアプリか、機能は三つまで（v1 と後回し）、保存するデータ、見た目、独自ドメイン。一問ずつ。答えは `docs/00-hearing.md` に短く残す。
-2. **サイト** — 承認は取らない。空ページを先に `npx wrangler deploy` し、中身を作り、PR の検証動画と本番 URL の確認まで進む。PRD、モック、モード、設計書、チケット分割は飛ばす。
+2. **サイト** — 承認は取らない。空ページを先に `npm run deploy`（固定バージョンの Wrangler）し、中身を作り、PR の検証動画と本番 URL の確認まで進む。PRD、モック、モード、設計書、チケット分割は飛ばす。
 3. **アプリの PRD** — `templates/prd.md` を `docs/prd.md` に写して埋める。不足だけを1回3問まで聞き、OK まで進まない。機能は三つまで。自分だけが使うときは、収益モデル、プライシング、GTM、差別化、収益・グロースの成功指標は「該当なし（自分用）」。インフラは無料枠。
 4. **モック** — PRD の画面フローと P0 だけを、依存なしの HTML で `docs/mockup/` に置く。スマホ幅と PC 幅のスクショを見せ、OK をもらう。イメージと大まかな UI のすり合わせであり、見た目の正にはしない。
 5. **モード** — アプリだけ。full-auto はボットが設計・チケット・実装を進める。approval は設計書、粒度、各 PR を人が見る。どちらでも、データを壊す操作と費用が出る操作は確認する。
@@ -122,7 +122,7 @@ mamestack で始めて。AGENTS.md のヒアリングから、一問ずつ。
 6. 設計書で Astro に決まること。サイトの公開は Wrangler、という判断。
 7. チケット二枚。later の「スマホで売り切れ」はゲートが登録を拒む。
 8. `npm run example:record` のターミナルと、できた WebM。PR テンプレートの三行。
-9. `guard` が `cf deploy` を confirm にし、アプリの `wrangler` を forbidden にするところ。サイトの `npx wrangler deploy` は confirm になる。
+9. `guard` が `cf deploy` と `npm run deploy` を confirm にし、アプリの `wrangler` を forbidden にするところ。サイトの Wrangler は `npm run deploy` の中で使う。
 
 ## 確認済みと、まだ実行していないこと
 

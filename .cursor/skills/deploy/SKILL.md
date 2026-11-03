@@ -7,8 +7,8 @@ description: Deploy a mamestack product to Cloudflare and check the live URL. Us
 
 正本は [docs/cloudflare-deploy.md](../../../docs/cloudflare-deploy.md)、[docs/framework-selection.md](../../../docs/framework-selection.md)、[docs/modes.md](../../../docs/modes.md)。未検証のフラグは作らない。
 
-1. サイト（Astro）は Wrangler。アプリ（Void）は `cf` と Void CLI。どちらを使うかは [AGENTS.md](../../../AGENTS.md) のデプロイの節。
-2. 実行する一行を、先に次へ通す。サイトの Wrangler は `--root` を付ける。
+1. 依存は [setup](../setup/SKILL.md) の `npm ci` 済みであること。公開は `npm run deploy`。サイトの script は Wrangler、アプリの script は Void CLI。使い分けは [AGENTS.md](../../../AGENTS.md) のデプロイの節。
+2. 実行する一行を、先に次へ通す。`--root` を付ける。
 
 ```sh
 node tools/gate/cli.mjs guard --root <root> --command "<実行する一行>"
