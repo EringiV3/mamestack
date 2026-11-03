@@ -15,36 +15,42 @@ description: Install pinned mamestack CLIs and browsers for a generated repo. Us
 | `cf` | `1.0.0-beta.27` | アプリ |
 | `void` | `1.5.0` | アプリ |
 | `playwright` | `1.64.1` | 両方 |
+| `better-sqlite3` | `12.11.1` | アプリ（`overrides`） |
 
-この4つだけ `^` を付けない。`void init` が足す `hono` や `react` などの `^` は消さない。再現はコミットした `package-lock.json` の `npm ci` で固定する。
+この表の版に `^` は付けない。`void init` が足す `hono` や `react` などの `^` は消さない。再現はコミットした `package-lock.json` の `npm ci` で固定する。
 
-`void@1.5.0` の `engines` は `node: ^24.22.0 || >=26.12.0`。アプリの `.node-version` は `24.22.2`。サイトの `.node-version` は `22.23.4`。
+## Node
 
-`void@1.5.0` が入れる `better-sqlite3@13.0.3` は、npm パッケージ内の `prebuilds/linux-x64.node` で Node 24.22.2（ABI 137）の linux-x64 に載った。`select 1` まで確認した。`gypfile` は false で install スクリプトは無い。GitHub Releases の v13.0.3 には `node-v137` の tar は無い。同梱の `linux-x64.node` を使うので、この組み合わせでは make も g++ も要らない。`npm` が `install: node-gyp rebuild` として承認を求めても承認しない。musl などでそのファイルを使えないときだけ、make と g++ を入れてから `npm ci` する。
+アプリの `.node-version` は `24.22.2`（`void@1.5.0` の `engines` は `^24.22.0 || >=26.12.0`）。サイトは `22.23.4`。
+
+`node -v` が `v` と `.node-version` の中身を繋げたものと違うときは、先にその版を入れる。公式の配布は `https://nodejs.org/dist/v<version>/node-v<version>-<os>-<arch>.tar.xz`。展開した `bin` を `PATH` の先頭に置く。もう一度 `node -v` が一致するまで先へ進まない。
 
 ## アプリ
 
-作業ディレクトリはプロダクトのルートだけである。`void init` はパスを取らない。
+タイミングは [AGENTS.md](../../../AGENTS.md) の T1。設計とチケットの確定のあとである。作業ディレクトリはプロダクトのルートだけである。`void init` はパスを取らない。
 
-1. そこに `package.json` を置く。`name` が Worker 名になる（`void@1.5.0` は `package.json` の `name`、無ければディレクトリ名）。`"type": "module"` にする。
+1. `package.json` を置く。`name` が Worker 名になる（`void@1.5.0` は `package.json` の `name`、無ければディレクトリ名）。`"type": "module"` にする。
 
 ```json
 {
   "name": "<worker-name>",
   "private": true,
-  "type": "module"
+  "type": "module",
+  "overrides": { "better-sqlite3": "12.11.1" }
 }
 ```
 
-2. `void@1.5.0` を入れてから、同じディレクトリで次を実行する。`CI=1` と、標準入力を閉じる。`--deploy none` にすると、ブラウザログインと GitHub workflow の質問を避ける。非対話では `--framework` が要る、と CLI が言った。
+2. `.mamestack` と `docs` は、`void@1.5.0` が空のプロジェクトとみなす名前の一覧に無い。残したまま `void init` すると、フラグが無い「Choose a database setup」で止まる。`void@1.5.0` の init が受け取るのは `tsconfig` `github` `git` `toolchain` `framework` `starter` `deploy` だけである。この二つを一時ディレクトリへ移してから init し、終わったら戻す。
+3. 同じディレクトリで次を実行する。`--starter static` がある空のプロジェクトでは、データベースの質問を飛ばす。`--deploy none` はブラウザログインと GitHub workflow の質問を避ける。`CI=1` と、標準入力を閉じる。
 
 ```sh
 CI=1 ./node_modules/.bin/void init --no-git --toolchain vite-plus --framework react --starter static --deploy none </dev/null
 ```
 
-3. `cf@1.0.0-beta.27` と `playwright@1.64.1` を `devDependencies` に足す。`scripts.deploy` は `void deploy`。
-4. 新しいプロジェクトだと `void init` は `AGENTS.md` を作る。工場の `AGENTS.md` をそのあとで上書きし、工程の正本は工場側のままにする。`CI=1` で既に工場の `AGENTS.md` があるときは、Void はそれを書き換えない。
-5. `.void-wrangler.jsonc` は `void deploy` が読む生成物である。アプリから Wrangler CLI を呼ぶことにはならない。消さない。`wrangler` パッケージは入れない。
+4. `cf@1.0.0-beta.27` と `playwright@1.64.1` を `devDependencies` に足す。`overrides` に `"better-sqlite3": "12.11.1"` を書く。`void@1.5.0` が入れる `13.0.3` は、Node 24.22.1 の `npm ci` が `node-gyp rebuild` を実行し、make が無いと失敗した。`12.11.1` には GitHub Releases の `node-v137` linux-x64 があり、make も g++ も python も無い状態の `npm ci` が終了コード 0 だった。`void prepare` とその `select 1` も通った。
+5. `scripts.deploy` は `void deploy`。
+6. 工場の `AGENTS.md` を戻す。工程の正本は工場側である。`void init` が新しいプロジェクトに書いた Void の `AGENTS.md` は、工場のファイルで置き換える。
+7. `.void-wrangler.jsonc` は `void deploy` が読む生成物である。アプリから Wrangler CLI を呼ぶことにはならない。消さない。`wrangler` パッケージは入れない。
 
 `CLOUDFLARE_API_TOKEN` と `CLOUDFLARE_ACCOUNT_ID` があるときは、`void cloudflare login` も `void connect` も実行しない。`void deploy` は `CLOUDFLARE_API_TOKEN`（無ければ `CF_API_TOKEN`）を自分で読む。アカウント ID は次の `result[].id` である。
 
@@ -58,11 +64,11 @@ https://dash.cloudflare.com/profile/api-tokens?permissionGroupKeys=%5B%7B%22key%
 
 ## サイト
 
-`npm create astro@5.3.1 -- <dir> --yes --no-git --install --skip-houston`。2026-11-03 に非対話で通り、テンプレート `basics` を置いた。`scripts.deploy` は `wrangler deploy`。`wrangler@4.156.2` と `playwright@1.64.1` を足す。
+ヒアリングの直後に行う。`npm create astro@5.3.1 -- <dir> --yes --no-git --install --skip-houston`。`scripts.deploy` は `wrangler deploy`。`wrangler@4.156.2` と `playwright@1.64.1` を足す。
 
 ## 共通
 
-`.node-version` と `package-lock.json` をコミットする。入れ直しは `rm -rf node_modules && npm ci`。
+`.node-version` と `package-lock.json` をコミットする。入れ直しは `rm -rf node_modules && npm ci`。`better-sqlite3` の `node-gyp rebuild` は承認しない。
 
 ブラウザは `npm ci` のあと、ロックされた `playwright` で入れる。`@latest` や版の指定は足さない。`apt` と `sudo` があるとき:
 
@@ -70,7 +76,7 @@ https://dash.cloudflare.com/profile/api-tokens?permissionGroupKeys=%5B%7B%22key%
 npx playwright install --with-deps chromium
 ```
 
-それが無いときは OS パッケージを入れず、ブラウザだけ入れる。起動に失敗したときの扱いは [docs/verification-video.md](../../../docs/verification-video.md)。
+無いときは OS パッケージを入れず、ブラウザだけ入れる。起動に失敗したときの扱いは [docs/verification-video.md](../../../docs/verification-video.md)。
 
 ```sh
 npx playwright install chromium

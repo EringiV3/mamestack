@@ -7,8 +7,8 @@ description: Initialize a mamestack product and ship an empty production deploy.
 
 正本は [AGENTS.md](../../../AGENTS.md)、[docs/framework-selection.md](../../../docs/framework-selection.md)、[docs/cloudflare-deploy.md](../../../docs/cloudflare-deploy.md)。規則をここに写さない。
 
-1. `.mamestack/state.json` が無ければ `node tools/gate/cli.mjs init --root <root> --name <名前>`。アプリの `<名前>` は `package.json` の `name`（Worker 名）と揃える。
-2. [setup](../setup/SKILL.md) に従い、プロジェクト作成から `npm ci` まで終える。
-3. `node tools/gate/cli.mjs next --root <root>` に従う。サイトかアプリかはヒアリングの結果で決まる。
-4. `docs/prd.md` と `docs/design-doc.md` が無ければ、`templates/prd.md` と `templates/design-doc.md` をそのパスへ置く。`init` が既に置いていれば上書きしない。中身の埋め方は [AGENTS.md](../../../AGENTS.md)。
-5. 中身を書く前に、空のまま本番へ出す。道は [deploy](../deploy/SKILL.md) と [docs/cloudflare-deploy.md](../../../docs/cloudflare-deploy.md) の空の公開。`v1` は使わない。出た URL を開いて、空であることが見えるまで次の実装に進まない。
+1. `.mamestack/state.json` が無ければ `node tools/gate/cli.mjs init --root <root> --name <名前>`。アプリの `<名前>` は、あとで書く `package.json` の `name`（Worker 名）と揃える。
+2. `node tools/gate/cli.mjs next --root <root>` に従う。サイトかアプリかはヒアリングの結果で決まる。
+3. `docs/prd.md` と `docs/design-doc.md` が無ければ、`templates/prd.md` と `templates/design-doc.md` をそのパスへ置く。`init` が既に置いていれば上書きしない。中身の埋め方は [AGENTS.md](../../../AGENTS.md)。
+4. サイトだけ、ヒアリングの直後に [setup](../setup/SKILL.md) のサイトの節を行い、空の公開へ進む。道は [deploy](../deploy/SKILL.md) と [docs/cloudflare-deploy.md](../../../docs/cloudflare-deploy.md) の空の公開。`v1` は使わない。
+5. アプリの `void init` と空の公開は、ここではしない。設計とチケットが終わり、phase が `implement` で T1 を開いてから [setup](../setup/SKILL.md) のアプリの節と [deploy](../deploy/SKILL.md) に進む。

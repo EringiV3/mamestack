@@ -9,7 +9,7 @@ description: Deploy a mamestack product to Cloudflare and check the live URL. Us
 
 1. `.mamestack/state.json` が無ければ `node tools/gate/cli.mjs init --root <root> --name <名前>`。
 2. 依存は [setup](../setup/SKILL.md) の `npm ci` 済みであること。公開の呼び出しは `npm run deploy`。サイトの script は Wrangler、アプリの script は Void CLI。使い分けは [AGENTS.md](../../../AGENTS.md)。
-3. 空の公開（サイトの実装の最初、またはアプリの T1）は [docs/cloudflare-deploy.md](../../../docs/cloudflare-deploy.md) の空の公開。`confirm-deploy --milestone empty` を使い、phase は `implement` のまま進める。`v1` は全チケットの検証動画が揃って phase が `deploy` になってからである。
+3. 空の公開のタイミングは [docs/cloudflare-deploy.md](../../../docs/cloudflare-deploy.md) の空の公開。サイトはヒアリング直後の `implement`。アプリは設計とチケットの確定のあと、T1 を実装している `implement`。どちらも `confirm-deploy --milestone empty`。`v1` は全チケットの検証動画が揃って phase が `deploy` になってからである。
 4. 実行する一行を、先に次へ通す。`--root` を付ける。
 
 ```sh

@@ -68,7 +68,7 @@ void project rollback
 
 ### 空の公開
 
-サイトの実装の最初と、アプリの T1「空のアプリをCloudflare本番に出す」のあいだは、phase が `implement` である。ここで `v1` は使わない。
+サイトはヒアリングの直後、phase が `implement` になったところである。アプリは設計とチケットの確定が終わったあと、同じく `implement` の T1「空のアプリをCloudflare本番に出す」である。`init` の直後にはしない。ここで `v1` は使わない。
 
 1. `confirm-deploy --root <root> --milestone empty --decision run --by user --reason "..."`
 2. `guard --root <root> --command "npm run deploy"` が confirm を返したら、利用者の確認のあと `npm run deploy`。
