@@ -65,3 +65,4 @@ verified-video: /absolute/path/recordings/t1.webm bytes=12345
 - `browserType.launch` が共有メモリで落ちる場合、スクリプトは `--disable-dev-shm-usage` を付けている。それでも落ちたら `npx playwright install-deps chromium` を検討する。このコマンドの成否は環境依存なので、失敗ログを PR に残し、成功するまで attach しない。
 - ポート 41773 が使用中なら `--port` を変える。よくある 3000 / 5173 / 8080 は避ける。
 - アサーション文と画面の文言が違うときは、シナリオを画面に合わせるか、実装を受入条件に合わせる。アサーションを消して緑にしない。
+- 本番のサインインは Better Auth が IP あたり約 3 回 / 10 秒に制限する。デプロイ先への E2E は `AUTH_TRUSTED_KEY` を使う。手順は [verify-record](../.cursor/skills/verify-record/SKILL.md)。`void secret put` は利用者の確認が要る。

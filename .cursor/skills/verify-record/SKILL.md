@@ -16,5 +16,6 @@ node tools/verify-record/record.mjs --serve <dir> --port <port> --scenario <file
 
 開発サーバーがあるときは `--serve` の代わりに `--base-url` を使う。フラグの意味は検証動画の文書に従う。
 
-3. 文書が定める三行（`検証動画:`、`録画コマンド:`、`終了コード: 0`）を PR に書く。動画ファイルを同じ変更に含める。
-4. `node tools/gate/cli.mjs attach-pr --root <root> --ticket <id> --pr <path> --video <path>`。サイトでチケットが無いときの付け方は [AGENTS.md](../../../AGENTS.md) の実装の節。
+3. 本番のサインインは Better Auth が IP あたり約 3 回 / 10 秒に制限する（`node_modules/void/docs/guide/auth.md`）。デプロイ先への E2E は `AUTH_TRUSTED_KEY` を使う。`env.ts` に optional で宣言し、`auth.ts` の `rateLimit.customRules` でヘッダ `x-auth-trusted-key` が一致するときだけ制限を外す。値は `void secret put AUTH_TRUSTED_KEY`。ブラウザに載るコードへは入れない。`void secret put` は利用者の確認が要る。
+4. 文書が定める三行（`検証動画:`、`録画コマンド:`、`終了コード: 0`）を PR に書く。動画ファイルを同じ変更に含める。
+5. `node tools/gate/cli.mjs attach-pr --root <root> --ticket <id> --pr <path> --video <path>`。サイトでチケットが無いときの付け方は [AGENTS.md](../../../AGENTS.md) の実装の節。

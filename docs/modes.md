@@ -15,6 +15,8 @@
 - `cf deploy` と `void deploy`
 - D1 / KV / R2 の作成、削除、書き込み SQL、`--force`
 - `void secret put`、`void db restore`、`void project rollback`
+
+`void db restore --platform cloudflare --bookmark=…` はブックマーク以降の書き込みを消す。本番データなので確認が先。`void deploy` は Worker を上げる前に D1 のマイグレーションを適用するので、失敗しても適用が残ることがある。非対話の Void は「About to apply N migration(s)」を自分で受ける。止まるのはこの確認だけである。
 - ドメインの購入、DNS を変える操作
 - 費用が出るとドキュメントに書いてあるもの（Workers Paid、Containers など）
 

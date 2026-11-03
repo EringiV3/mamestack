@@ -61,9 +61,11 @@ CI=1 ./node_modules/.bin/void init --no-git --toolchain vite-plus --framework re
 curl -s https://api.cloudflare.com/client/v4/accounts -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN"
 ```
 
-トークン作成は、Workers Scripts、Workers KV Storage、Workers Routes の Edit が入った次の URL で足りた。
+DB、認証、ストレージ、AI を使うアプリは、Workers Scripts、Workers KV Storage、Workers Routes の Edit に加え、D1 の Edit と R2 の Edit が要る。テンプレートの permission reference（[API token template URLs](https://developers.cloudflare.com/fundamentals/api/how-to/account-owned-token-template/)）で短いキーを確認できたのは `d1`（D1 database）と `workers_r2`（R2 storage）だけである。Workers AI Read の短いキーは同じ表に無かったので URL には入れない。フォームで + add、Account > Workers AI > Read。
 
-https://dash.cloudflare.com/profile/api-tokens?permissionGroupKeys=%5B%7B%22key%22%3A%22workers_scripts%22%2C%22type%22%3A%22edit%22%7D%2C%7B%22key%22%3A%22workers_kv_storage%22%2C%22type%22%3A%22edit%22%7D%2C%7B%22key%22%3A%22workers_routes%22%2C%22type%22%3A%22edit%22%7D%5D&accountId=*&zoneId=all
+https://dash.cloudflare.com/profile/api-tokens?permissionGroupKeys=%5B%7B%22key%22%3A%22workers_scripts%22%2C%22type%22%3A%22edit%22%7D%2C%7B%22key%22%3A%22workers_kv_storage%22%2C%22type%22%3A%22edit%22%7D%2C%7B%22key%22%3A%22workers_routes%22%2C%22type%22%3A%22edit%22%7D%2C%7B%22key%22%3A%22d1%22%2C%22type%22%3A%22edit%22%7D%2C%7B%22key%22%3A%22workers_r2%22%2C%22type%22%3A%22edit%22%7D%5D&accountId=*&zoneId=all
+
+R2 はダッシュボードで一度有効にする。無料枠でも請求情報を聞く。利用者の確認が要る。
 
 ## サイト
 
