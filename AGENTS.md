@@ -128,11 +128,11 @@ OK はモードに関係なく利用者からもらう。OK なら `approve-mock
 
 ### サイト
 
-最初に空ページを `npm run deploy` で本番に出す。script は固定バージョンの Wrangler。実行前に `guard --root <プロダクト> --command "npm run deploy"` と利用者の確認が要る。出た URL を見てから中身を作り、PR を1枚と検証動画を残して `attach-pr` する。
+最初に空ページを出す。記録は [docs/cloudflare-deploy.md](docs/cloudflare-deploy.md) の空の公開（`confirm-deploy --milestone empty`）。`v1` は検証動画のあと。出た URL を見てから中身を作り、PR を1枚と検証動画を残して `attach-pr` する。
 
 ### アプリ
 
-開いているチケットを一つだけ実装する。PR は一枚。各 PR のあと、本番に出せる状態を保つ。デプロイそのものは利用者の確認が要る。
+開いているチケットを一つだけ実装する。PR は一枚。T1 の空の公開は [docs/cloudflare-deploy.md](docs/cloudflare-deploy.md) の空の公開で、実装中に記録する。各 PR のあと、本番に出せる状態を保つ。デプロイそのものは利用者の確認が要る。
 
 1. ローカルで受入条件を満たす。
 2. `docs/verification-video.md` の手順で Playwright の動画を録る。終了コードが 0 のときだけ次へ進む。
