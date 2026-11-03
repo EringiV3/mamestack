@@ -1,6 +1,6 @@
 # Cloudflare へのデプロイ
 
-公開先は Cloudflare。使う CLI は `cf`（サイト）か Void CLI（アプリケーション）。Wrangler は使わない。`cf` が未対応でも Wrangler にフォールバックしない。止まって、このファイルの TODO を利用者に見せる。
+公開先は Cloudflare。サイト（Astro）のビルドとデプロイは Wrangler。アプリは `cf` か Void CLI で、Wrangler は使わない。止まって、このファイルの TODO を利用者に見せる。
 
 確認日: 2026-11-03。コマンド本文は公式からの引用で、この環境では Cloudflare にログインして実行していない。
 
@@ -21,7 +21,7 @@ npm の `cf@1.0.0-beta.27`（homepage は `github.com/cloudflare/cf`）が 2026-
 - コマンド探し: `cf cli search "create D1 database"`。資格情報は不要。公式の例では先頭が `cf d1 create`。中身は `cf schema d1 create`。試行は `cf d1 create --name my-database --dry-run`。
 - 読み取りの例: `cf d1 query <DATABASE_ID> --sql "SELECT 1"`。識別子は名前ではなく API の ID。
 - プロジェクト: `cf init my-worker`、既存ディレクトリは `cf init .`。開発・ビルド・公開は `cf dev` / `cf build` / `cf deploy`。設定ファイルは `cloudflare.config.ts`。
-- Wrangler 設定しか無いディレクトリで `cf dev` / `cf build` / `cf deploy` / `cf init .` を走らせない。`cf migrate --dry-run` のあと `cf migrate`。mamestack の新規プロダクトは Wrangler 設定を作らない。
+- Wrangler 設定しか無いディレクトリで `cf dev` / `cf build` / `cf deploy` / `cf init .` を走らせない。`cf migrate --dry-run` のあと `cf migrate`。アプリの新規プロダクトは Wrangler 設定を作らない。サイト（Astro）は Wrangler で出す。
 - `--dry-run` は要求を JSON で出すだけで送らない。資格情報も要らない、とエージェント向けページにある。
 - 非対話で、破壊的コマンドを `--force` 無しで実行すると、標準エラーに `Aborted.` と出て終了コードが 0 になることがある。0 を「削除できた」と読まない。
 - `--local` は一部だけ（KV のキー、`cf d1 raw`、`cf d1 migrations list`、`cf d1 migrations apply`、R2 オブジェクト）。`cf d1 query` にローカルは無い。
@@ -32,13 +32,13 @@ npm の `cf@1.0.0-beta.27`（homepage は `github.com/cloudflare/cf`）が 2026-
 
 [Deploy your first Worker](https://developers.cloudflare.com/cf/get-started/first-worker/) は、`cf` が Astro を検出してもビルドできるとは限らない、と書いている。引用: Astro 6 以降はベータ期間中 `cf` でビルドできない。2026-11-03 の npm の Astro は 7.4.5 なので、現行の Astro はこの記述の内側にある。
 
-したがって mamestack は、Astro サイトの `cf deploy` を「通る手順」として書かない。デプロイのマイルストーンでは、利用者が確認する前に次を取り直す。
+したがってサイトは `cf deploy` を使わない。空ページから本番へは、Cloudflare が Astro 向けに案内している Wrangler で出す。
 
 ```sh
-cf docs search "deploy Astro"
+npx wrangler deploy
 ```
 
-公式が「Astro 6 以降はビルドできない」を取り下げ、成功する手順を出すまでは `confirm-deploy --decision skip` を提案する。Void アプリへ作り替えない。Wrangler の `npx wrangler deploy` にも切り替えない。Cloudflare の別ページは今も Wrangler と `npm create cloudflare@latest -- my-astro-app --framework=astro` を案内している。それは mamestack の経路ではない。
+実行前に `guard --root <プロダクト> --command "npx wrangler deploy"` と利用者の確認が要る。Void アプリへ作り替えない。アプリは `npx wrangler deploy` に切り替えない。
 
 ### Void CLI
 

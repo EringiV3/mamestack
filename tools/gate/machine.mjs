@@ -25,8 +25,9 @@ export const HEARING_KEYS = [
 
 export const QUESTIONS = {
   what: "何を作りますか。一文で、誰のどの用事を片づけるものか教えてください。",
-  who: "それは誰が使いますか。使う人と、使わない人を一人ずつ挙げてください。",
-  shape: "静的サイトですか、それとも操作や保存で中身が変わるアプリケーションですか。static か dynamic で答えてください。",
+  who: "それは誰が使いますか。使う人と、使わない人を一人ずつ挙げてください。自分だけなら、答えを「自分だけ」から始めてください。",
+  shape:
+    "ウェブサイト（Astro・保存しない静的サイト）なら static、ウェブアプリ（Void・操作や保存がある）なら dynamic と答えてください。保存があるなら dynamic です。",
   features:
     "機能は3つまでです。それぞれ名前と、v1 で入れるか後回し（later）かを決めてください。",
   data: "保存するデータは何ですか。無いなら、答えを「なし」から始めてください。",
@@ -34,6 +35,8 @@ export const QUESTIONS = {
   domain:
     "独自ドメインは使いますか。使うならドメイン名。使わないなら、答えを「なし」から始めてください。",
 };
+
+export const EMPTY_APP_TICKET_TITLE = "空のアプリをCloudflare本番に出す";
 
 const MODE_QUESTION =
   "ここから先は、どちらにしますか。full-auto（この後はボットが進める。ただし破壊的なデータ操作と、費用のかかる操作は必ず確認する）か、approval（設計書、チケットの粒度、各 PR をあなたが承認する）か。";
@@ -58,6 +61,7 @@ export function createState(name) {
     version: 1,
     name,
     phase: "hearing",
+    track: null,
     mode: null,
     hearing: {
       summaryPath: "docs/00-hearing.md",
@@ -83,6 +87,7 @@ export function createState(name) {
       frameworkReason: "",
     },
     tickets: { confirmed: false, confirmedBy: null, items: [] },
+    siteDelivery: null,
     deploy: {
       milestones: [
         {
@@ -96,6 +101,14 @@ export function createState(name) {
       ],
     },
   };
+}
+
+function isWebsite(state) {
+  return state.hearing.answers.shape === "static" && isNone(state.hearing.answers.data);
+}
+
+function isPersonalUse(who) {
+  return typeof who === "string" && who.trim().startsWith("自分だけ");
 }
 
 export function isNone(value) {
@@ -265,7 +278,6 @@ export function answer(state, key, text) {
 }
 
 export function acceptSummary(state, root, by) {
-  assertUser(by, "要求まとめの受理");
   if (state.phase !== "hearing") {
     throw new Error("要求まとめを受理できるのは hearing の間だけです");
   }
@@ -274,9 +286,27 @@ export function acceptSummary(state, root, by) {
   }
   const summary = readRequired(root, state.hearing.summaryPath);
   assertSummaryContainsAnswers(summary, state);
+  if (isWebsite(state)) {
+    if (by !== "bot") {
+      throw new Error("サイトは承認を待たず、accept-summary --by bot です");
+    }
+    return {
+      ...state,
+      phase: "implement",
+      track: "site",
+      hearing: { ...state.hearing, summaryAccepted: true },
+      deploy: {
+        milestones: state.deploy.milestones.map((milestone) =>
+          milestone.id === "v1" ? { ...milestone, command: "npx wrangler deploy" } : milestone,
+        ),
+      },
+    };
+  }
+  assertUser(by, "要求まとめの受理");
   return {
     ...state,
     phase: "prd",
+    track: "app",
     hearing: { ...state.hearing, summaryAccepted: true },
   };
 }
@@ -314,6 +344,9 @@ export function approvePrd(state, root, by) {
     if (!body.includes(feature.name)) {
       throw new Error(`PRD に機能「${feature.name}」がありません`);
     }
+  }
+  if (isPersonalUse(state.hearing.answers.who) && !body.includes("該当なし（自分用）")) {
+    throw new Error("自分用の PRD には、聞かない節へ「該当なし（自分用）」と書いてください");
   }
   return {
     ...state,
@@ -429,13 +462,22 @@ export function addTicket(state, root, ticket) {
   if (ticket.size !== "S" && ticket.size !== "M") {
     throw new Error("サイズ L は分割してから登録します。S か M だけです");
   }
-  const features = state.hearing.answers.features;
-  const feature = features.find((item) => item.name === ticket.feature);
-  if (!feature) {
-    throw new Error("feature はヒアリングの機能名と一致させてください");
-  }
-  if (feature.release !== "v1") {
-    throw new Error(`「${feature.name}」は later です。v1 のチケットにしません`);
+  const first = state.tickets.items.length === 0;
+  if (first) {
+    if (ticket.id !== "T1" || ticket.title !== EMPTY_APP_TICKET_TITLE) {
+      throw new Error(`最初のチケットは T1「${EMPTY_APP_TICKET_TITLE}」です`);
+    }
+  } else if (ticket.title === EMPTY_APP_TICKET_TITLE) {
+    throw new Error("空アプリの本番公開は T1 だけです");
+  } else {
+    const features = state.hearing.answers.features;
+    const feature = features.find((item) => item.name === ticket.feature);
+    if (!feature) {
+      throw new Error("feature はヒアリングの機能名と一致させてください");
+    }
+    if (feature.release !== "v1") {
+      throw new Error(`「${feature.name}」は later です。v1 のチケットにしません`);
+    }
   }
   const body = readRequired(root, ticket.path);
   if (!body.includes(ticket.title) || !body.includes("受入条件") || !body.includes(ticket.id)) {
@@ -508,18 +550,7 @@ function assertVideo(root, rel) {
   }
 }
 
-export function attachPr(state, root, ticketId, prPath, videoPath) {
-  if (state.phase !== "implement") {
-    throw new Error("PR を付けられるのは implement の間だけです");
-  }
-  const index = state.tickets.items.findIndex((item) => item.id === ticketId);
-  if (index === -1) {
-    throw new Error(`チケットがありません: ${ticketId}`);
-  }
-  const ticket = state.tickets.items[index];
-  if (ticket.pr) {
-    throw new Error(`${ticketId} には既に PR があります`);
-  }
+function assertPrVideo(root, prPath, videoPath) {
   const body = readRequired(root, prPath);
   const videoLine = `検証動画: ${videoPath}`;
   if (!body.includes(videoLine)) {
@@ -531,10 +562,37 @@ export function attachPr(state, root, ticketId, prPath, videoPath) {
   if (!body.includes("録画コマンド:")) {
     throw new Error("PR に録画コマンドがありません");
   }
+  assertVideo(root, videoPath);
+  return body;
+}
+
+export function attachPr(state, root, ticketId, prPath, videoPath) {
+  if (state.phase !== "implement") {
+    throw new Error("PR を付けられるのは implement の間だけです");
+  }
+  if (state.track === "site") {
+    if (state.siteDelivery) {
+      throw new Error("サイトの PR は既に付いています");
+    }
+    assertPrVideo(root, prPath, videoPath);
+    return {
+      ...state,
+      phase: "deploy",
+      siteDelivery: { path: prPath, video: videoPath },
+    };
+  }
+  const index = state.tickets.items.findIndex((item) => item.id === ticketId);
+  if (index === -1) {
+    throw new Error(`チケットがありません: ${ticketId}`);
+  }
+  const ticket = state.tickets.items[index];
+  if (ticket.pr) {
+    throw new Error(`${ticketId} には既に PR があります`);
+  }
+  const body = assertPrVideo(root, prPath, videoPath);
   if (!body.includes(ticketId)) {
     throw new Error("PR にチケット ID がありません");
   }
-  assertVideo(root, videoPath);
   const items = state.tickets.items.map((item, itemIndex) =>
     itemIndex === index ? { ...item, pr: { path: prPath, video: videoPath } } : item,
   );
@@ -564,8 +622,11 @@ export function confirmDeploy(state, milestoneId, decision, by, reason) {
   if (milestone.decision) {
     throw new Error(`${milestoneId} は確認済みです`);
   }
-  if (!milestone.command || /wrangler/i.test(milestone.command)) {
-    throw new Error("デプロイコマンドが空か、Wrangler を含んでいます");
+  if (!milestone.command) {
+    throw new Error("デプロイコマンドが空です");
+  }
+  if (/wrangler/i.test(milestone.command) && state.track !== "site") {
+    throw new Error("アプリのデプロイコマンドに Wrangler は使えません");
   }
   const milestones = state.deploy.milestones.map((item) =>
     item.id === milestoneId
@@ -608,10 +669,17 @@ export function markDeploy(state, milestoneId, exitCode) {
   };
 }
 
-export function classifyCommand(command) {
+export function classifyCommand(command, options = {}) {
+  const track = options.track ?? null;
   const normalized = command.trim();
   if (/wrangler/i.test(normalized)) {
-    return { class: "forbidden", reason: "mamestack は Wrangler を使いません" };
+    if (track !== "site") {
+      return { class: "forbidden", reason: "アプリは Wrangler を使いません。サイト（Astro）だけが使います" };
+    }
+    if (/\bdeploy\b/.test(normalized) || /\b(delete|secret)\b/i.test(normalized) || /\b--force\b/.test(normalized)) {
+      return { class: "confirm", reason: "サイトの Wrangler デプロイは公開であり、費用がかかることがあります" };
+    }
+    return { class: "allow", reason: "" };
   }
   const confirmers = [
     { re: /\bcf\s+deploy\b/, reason: "cf deploy は公開であり、費用がかかることがあります" },
@@ -649,17 +717,24 @@ export function nextAction(state) {
           message: `この質問だけを聞いてください。まとめたり、先の質問を足したりしないでください。\n\n${QUESTIONS[key]}`,
         };
       }
+      if (isWebsite(state)) {
+        return {
+          code: "write-summary",
+          message:
+            "ウェブサイトです。PRD、モック、モード、設計書、チケット分割は飛ばします。七つの答えを docs/00-hearing.md（見出しは「# 要求まとめ」）に短く残し、承認は待たずに accept-summary --by bot を実行します。",
+        };
+      }
       return {
         code: "write-summary",
         message:
-          "7つの答えを一枚の要求まとめ（docs/00-hearing.md、見出しは「# 要求まとめ」）に書き、利用者に見せて受理を待ってください。受理されたら accept-summary --by user を実行します。",
+          "ウェブアプリです。7つの答えを一枚の要求まとめ（docs/00-hearing.md、見出しは「# 要求まとめ」）に書き、利用者に見せて受理を待ってください。保存があると答えた静的サイトもこちらです。受理されたら accept-summary --by user を実行します。",
       };
     }
     case "prd":
       return {
         code: "write-prd",
         message:
-          "templates/prd.md を docs/prd.md に写して埋めてください。init で置いてあればそれを使います。エレベーターピッチ、ターゲットと課題、成功指標、機能要件（P0/P1/P2/Won't）、画面フロー、マネタイズ・コスト、GTM を埋めます。答えが出ている項目は聞き直さず、不足だけを1回3問まで聞いてください。機能は最大3つです。削らず、不要な箇所は「該当なし」と書きます。全文を見せ、OK なら approve-prd --by user を実行します。",
+          "templates/prd.md を docs/prd.md に写して埋めてください。init で置いてあればそれを使います。エレベーターピッチ、ターゲットと課題、成功指標、機能要件（P0/P1/P2/Won't）、画面フロー、マネタイズ・コスト、GTM を埋めます。答えが出ている項目は聞き直さず、不足だけを1回3問まで聞いてください。機能は最大3つです。削らず、不要な箇所は「該当なし」と書きます。who が「自分だけ」で始まるときは、収益モデル、プライシング、GTM、既存サービスとの差別化、成功指標の収益・グロース行は聞かないで「該当なし（自分用）」と書きます。インフラ許容コストは Cloudflare 無料枠を前提に埋めます。テンプレートの見出しは残します。全文を見せ、OK なら approve-prd --by user を実行します。",
       };
     case "mockup":
       return {
@@ -682,20 +757,27 @@ export function nextAction(state) {
       return {
         code: "write-tickets",
         message:
-          "v1 の各機能について templates/ticket.md でチケットを書き、add-ticket してください。サイズ L は禁止です。approval なら粒度の OK を待って confirm-tickets --by user。full-auto なら confirm-tickets --by bot。",
+          "最初のチケットは必ず T1「空のアプリをCloudflare本番に出す」です。リポジトリ作成、Void 導入、必要な D1 等の作成とバインディング、cf または Void CLI でのデプロイ、本番 URL の表示確認を受入条件にします。資源の作成とデプロイは利用者の確認が要ります。その後に v1 の機能チケットを足します。サイズ L は禁止です。各 PR のあと本番に出せる状態を保ちます。approval なら粒度の OK を待って confirm-tickets --by user。full-auto なら confirm-tickets --by bot。",
       };
     case "implement": {
+      if (state.track === "site") {
+        return {
+          code: "implement",
+          message:
+            "サイトの実装です。最初に空ページを npx wrangler deploy で本番に出します。実行前に guard --root <プロダクト> --command \"npx wrangler deploy\" と利用者の確認が要ります。出た本番 URL を見てから中身を作り、PR を1枚と検証動画を残して attach-pr します。アプリに Wrangler は使いません。",
+        };
+      }
       const open = state.tickets.items.find((item) => !item.pr);
       return {
         code: "implement",
-        message: `チケット ${open?.id ?? "?"} だけを実装し、PR を1枚作り、検証動画を録画してください。動画の無い PR は完了になりません。モックとの差分確認はしません。approval なら PR ごとに利用者の OK を取ります。`,
+        message: `チケット ${open?.id ?? "?"} だけを実装し、PR を1枚作り、検証動画を録画してください。動画の無い PR は完了になりません。各 PR のあと本番に出せる状態を保ちます。デプロイそのものは利用者の確認が要ります。モックとの差分確認はしません。approval なら PR ごとに利用者の OK を取ります。`,
       };
     }
     case "deploy":
       return {
         code: "confirm-deploy",
         message:
-          "デプロイは費用と公開を伴います。full-auto でも必ず利用者に確認してください。docs/cloudflare-deploy.md の未検証項目が残っているコマンドは実行せず、その旨を伝えて skip か待機を選んでもらいます。Wrangler には切り替えません。確認後に confirm-deploy --by user。",
+          "デプロイは費用と公開を伴います。サイトもアプリも、本番 URL で表示を確認します。必ず利用者に確認してください。サイトの公開コマンドは npx wrangler deploy、アプリは cf か Void CLI です。docs/cloudflare-deploy.md の未検証項目が残っているコマンドは実行せず、その旨を伝えて skip か待機を選んでもらいます。確認後に confirm-deploy --by user。",
       };
     case "done":
       return { code: "done", message: "このプロダクトの mamestack 工程は閉じました。" };
@@ -722,6 +804,10 @@ export function validate(state, root) {
     if (state.mode !== null) {
       fail("mode フェーズでは mode はまだ null です");
     }
+  } else if (state.track === "site") {
+    if (state.mode !== null) {
+      fail("サイトにモードはありません");
+    }
   } else if (state.mode !== "full-auto" && state.mode !== "approval") {
     fail("mode が決まっていません");
   }
@@ -746,7 +832,7 @@ export function validate(state, root) {
       }
     }
   }
-  if (past(state, "prd")) {
+  if (state.track !== "site" && past(state, "prd")) {
     if (!state.prd.approved) {
       fail("PRD が承認されていません");
     } else {
@@ -760,13 +846,16 @@ export function validate(state, root) {
             fail(`PRD から機能「${feature.name}」が消えました`);
           }
         }
+        if (isPersonalUse(state.hearing.answers.who) && !body.includes("該当なし（自分用）")) {
+          fail("自分用の PRD に「該当なし（自分用）」がありません");
+        }
       } catch (error) {
         fail(error instanceof Error ? error.message : String(error));
       }
     }
   }
   // モック工程の前に閉じたサンプルは mockup キーを持たない。
-  if (state.mockup && past(state, "mockup")) {
+  if (state.track !== "site" && state.mockup && past(state, "mockup")) {
     if (!state.mockup.approved || state.mockup.approvedBy !== "user") {
       fail("モックが利用者に承認されていません");
     } else {
@@ -777,7 +866,7 @@ export function validate(state, root) {
       }
     }
   }
-  if (past(state, "mode")) {
+  if (state.track !== "site" && past(state, "mode")) {
     try {
       const note = readRequired(root, state.modeNotePath);
       if (!note.includes(state.mode)) {
@@ -787,7 +876,7 @@ export function validate(state, root) {
       fail(error instanceof Error ? error.message : String(error));
     }
   }
-  if (past(state, "design")) {
+  if (state.track !== "site" && past(state, "design")) {
     if (!state.design.approved || !state.design.framework) {
       fail("設計書が確定していません");
     } else {
@@ -805,15 +894,39 @@ export function validate(state, root) {
       }
     }
   }
-  if (past(state, "tickets") && !state.tickets.confirmed) {
+  if (state.track !== "site" && past(state, "tickets") && !state.tickets.confirmed) {
     fail("チケット粒度が確認されていません");
   }
+  if (state.track === "app" && state.tickets.items.length > 0) {
+    const first = state.tickets.items[0];
+    if (first.id !== "T1" || first.title !== EMPTY_APP_TICKET_TITLE) {
+      fail(`最初のチケットは T1「${EMPTY_APP_TICKET_TITLE}」です`);
+    }
+  }
   if (past(state, "implement")) {
-    if (state.tickets.items.length < 1 || state.tickets.items.some((item) => !item.pr)) {
+    if (state.track === "site") {
+      if (!state.siteDelivery?.video) {
+        fail("検証動画の無いサイト実装のままデプロイへ進んでいます");
+      } else {
+        try {
+          assertPrVideo(root, state.siteDelivery.path, state.siteDelivery.video);
+        } catch (error) {
+          fail(error instanceof Error ? error.message : String(error));
+        }
+      }
+    } else if (state.tickets.items.length < 1 || state.tickets.items.some((item) => !item.pr)) {
       fail("検証動画の無いチケットが残ったままデプロイへ進んでいます");
     }
   }
-  if (state.phase === "implement" && state.tickets.items.every((item) => item.pr) && state.tickets.items.length > 0) {
+  if (state.phase === "implement" && state.track === "site" && state.siteDelivery) {
+    fail("サイトの PR が付いているのに phase が implement のままです");
+  }
+  if (
+    state.phase === "implement" &&
+    state.track !== "site" &&
+    state.tickets.items.every((item) => item.pr) &&
+    state.tickets.items.length > 0
+  ) {
     fail("全 PR が揃っているのに phase が implement のままです");
   }
   if (state.phase === "done") {
@@ -846,7 +959,7 @@ export function validate(state, root) {
     }
   }
   for (const milestone of state.deploy.milestones) {
-    if (milestone.command && /wrangler/i.test(milestone.command)) {
+    if (milestone.command && /wrangler/i.test(milestone.command) && state.track !== "site") {
       fail("デプロイコマンドに Wrangler が含まれています");
     }
     if ((milestone.decision || milestone.executed) && milestone.confirmedBy !== "user") {
