@@ -13,11 +13,11 @@ npm install
 npx playwright install chromium
 ```
 
-`playwright` は依存関係にある。ブラウザのバイナリは `npx playwright install chromium` が入れる。
+`playwright` は依存関係にある。この二つを工場のルートで先に行う。無いと `record.mjs` が `ERR_MODULE_NOT_FOUND` になる。ブラウザのバイナリは `npx playwright install chromium` が入れる。
 
 ## 録る
 
-シナリオは JSON である。`steps` の `type` は `goto` / `click` / `fill` / `press` / `wait` / `assertText` / `assertVisible` / `assertHidden`。アサーションが失敗すると終了コードは 1 で、その動画を PR に付けない。
+シナリオは JSON である。`steps` の `type` は `goto` / `click` / `fill` / `press` / `wait` / `assertText` / `assertVisible` / `assertHidden` / `assertStatus`。`assertStatus` は `path` と `status`。認証の例は [examples/scenarios/auth.json](../examples/scenarios/auth.json)。未ログインの `GET` は 401、サインアップしてログインしたあとは 200。アサーションが失敗すると終了コードは 1 で、その動画を PR に付けない。
 
 ローカルの静的ディレクトリをスクリプト自身が配信する:
 

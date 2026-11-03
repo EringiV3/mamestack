@@ -5,7 +5,9 @@ description: Record a Playwright verification video for a mamestack acceptance c
 
 # verify-record
 
-手順と合格条件は [docs/verification-video.md](../../../docs/verification-video.md)。シナリオの形は [examples/kiosk-hours/scenarios/t1-hours.json](../../../examples/kiosk-hours/scenarios/t1-hours.json)。
+手順と合格条件は [docs/verification-video.md](../../../docs/verification-video.md)。シナリオの形は [examples/kiosk-hours/scenarios/t1-hours.json](../../../examples/kiosk-hours/scenarios/t1-hours.json)。認証つきアプリの例は [examples/scenarios/auth.json](../../../examples/scenarios/auth.json)。
+
+工場リポジトリのルートで、先に `npm install` と `npx playwright install chromium`。無いと `record.mjs` が `ERR_MODULE_NOT_FOUND` になる。
 
 1. 受入条件をなぞる JSON を `scenarios/` に書く。`later` の画面は録らない。
 2. 次で録画する。終了コードが 0 のときだけ先へ進む。
