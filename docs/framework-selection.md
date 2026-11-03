@@ -5,7 +5,7 @@
 - ウェブサイト（ビルド時に内容が決まり、来訪者ごとのサーバー処理が要らない）は Astro。
 - アプリケーション（入力、ログイン、保存、リクエストごとの処理）は Void。Void SDK を使い、Void CLI で出す。
 
-ホスティングは基本的に Cloudflare（Workers、必要なとき D1 / R2 / KV）。デプロイは新しい `cf` か Void CLI で、Wrangler ではない。
+ホスティングは基本的に Cloudflare（Workers、必要なとき D1 / R2 / KV）。サイト（Astro）のビルドとデプロイは Wrangler。アプリは `cf` か Void CLI で、Wrangler ではない。
 
 ヒアリングの `shape` が `static` で、`data` が「なし」で始まるとき、ゲートは Astro 以外を拒む。`dynamic` のとき、または保存するデータがあるとき、ゲートは Void 以外を拒む。静的と答えて保存もある場合は、アプリケーションとして Void を選び、その理由を設計書に書く。
 

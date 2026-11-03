@@ -2,7 +2,7 @@
 
 個人開発のための、再現できるソフトウェア工場である。AI コーディングボット（まず Grok Bot と Cursor のエージェント）が、ヒアリングから Cloudflare への公開までを、決まった順で進める。正本はこのリポジトリで、会話の記憶ではない。
 
-A version-controlled factory for personal software. Hearing chooses a website or an app. A website (Astro, nothing stored) goes from the hearing note straight to implementation: deploy an empty page, build it, record one pull request, and check the production URL. An app (Void) keeps the full path: PRD, HTML mock, mode, design, tickets starting with an empty production deploy, implementation, and deploy. Websites use Astro. Applications use Void. The deploy CLI is `cf` or the Void CLI, not Wrangler.
+A version-controlled factory for personal software. Hearing chooses a website or an app. A website (Astro, nothing stored) goes from the hearing note straight to implementation: deploy an empty page with Wrangler, build it, record one pull request, and check the production URL. An app (Void) keeps the full path: PRD, HTML mock, mode, design, tickets starting with an empty production deploy, implementation, and deploy. Websites use Astro and Wrangler. Applications use Void. App deploy is `cf` or the Void CLI, not Wrangler.
 
 This repository is the factory itself. It is not a hosted app and not an npm library. `npm install` only installs Playwright, which the verification-video script needs. License: [MIT](LICENSE).
 
@@ -52,13 +52,13 @@ flowchart TD
 ```
 
 1. **Hearing** — 何を作るか、誰が使うか、サイトかアプリか、機能は三つまで（v1 と後回し）、保存するデータ、見た目、独自ドメイン。一問ずつ。答えは `docs/00-hearing.md` に短く残す。
-2. **サイト** — 承認は取らない。空ページを先に `cf deploy` し、中身を作り、PR の検証動画と本番 URL の確認まで進む。PRD、モック、モード、設計書、チケット分割は飛ばす。
+2. **サイト** — 承認は取らない。空ページを先に `npx wrangler deploy` し、中身を作り、PR の検証動画と本番 URL の確認まで進む。PRD、モック、モード、設計書、チケット分割は飛ばす。
 3. **アプリの PRD** — `templates/prd.md` を `docs/prd.md` に写して埋める。不足だけを1回3問まで聞き、OK まで進まない。機能は三つまで。自分だけが使うときは、収益モデル、プライシング、GTM、差別化、収益・グロースの成功指標は「該当なし（自分用）」。インフラは無料枠。
 4. **モック** — PRD の画面フローと P0 だけを、依存なしの HTML で `docs/mockup/` に置く。スマホ幅と PC 幅のスクショを見せ、OK をもらう。イメージと大まかな UI のすり合わせであり、見た目の正にはしない。
 5. **モード** — アプリだけ。full-auto はボットが設計・チケット・実装を進める。approval は設計書、粒度、各 PR を人が見る。どちらでも、データを壊す操作と費用が出る操作は確認する。
 6. **設計書** — アプリだけ。認証、課金、ドメインなど利用者にしか決められないことだけ聞く。モックは参考程度。
 7. **チケット** — アプリだけ。T1 は空のアプリを本番に出す。その後 v1 の機能。各 PR のあと本番に出せる状態を保つ。
-8. **デプロイ** — 本番 URL で表示を確認する。未検証のコマンドは実行しない。Astro と `cf` の未対応が公式に残る間は、サイトの公開を止めて理由を残す。
+8. **デプロイ** — 本番 URL で表示を確認する。未検証のコマンドは実行しない。サイトは Wrangler、アプリは `cf` か Void CLI。
 
 ## フレームワーク
 
@@ -69,7 +69,7 @@ flowchart TD
 
 詳細は [docs/framework-selection.md](docs/framework-selection.md)。公開コマンドの、公式で確認できた範囲と TODO は [docs/cloudflare-deploy.md](docs/cloudflare-deploy.md)。
 
-2026-11-03 時点で、Cloudflare は `cf` をベータとし、Astro 6 以降は `cf` でビルドできない、と書いている。npm の Astro はその日 7 系だった。mamestack はその穴を Wrangler で埋めない。制限が公式から消えるまで、Astro の公開は止めて理由を残す。
+2026-11-03 時点で、Cloudflare は `cf` をベータとし、Astro 6 以降は `cf` でビルドできない、と書いている。npm の Astro はその日 7 系だった。サイト（Astro）のビルドとデプロイは Wrangler で行う。アプリは Wrangler を使わない。
 
 ## リポジトリ
 
@@ -119,10 +119,10 @@ mamestack で始めて。AGENTS.md のヒアリングから、一問ずつ。
 3. PRD を出して、OK まで打たない。
 4. 静的 HTML モックを、スマホ幅と PC 幅のスクショとともに見せ、OK まで打たない。
 5. full-auto と approval の違い。費用と削除はどちらでも止まると言う。
-6. 設計書で Astro に決まること。`cf` が Astro 6 以降をビルドできない、と公式にあるので公開しない、という判断。
+6. 設計書で Astro に決まること。サイトの公開は Wrangler、という判断。
 7. チケット二枚。later の「スマホで売り切れ」はゲートが登録を拒む。
 8. `npm run example:record` のターミナルと、できた WebM。PR テンプレートの三行。
-9. `guard` が `cf deploy` を confirm にし、`wrangler` を forbidden にするところ。
+9. `guard` が `cf deploy` を confirm にし、アプリの `wrangler` を forbidden にするところ。サイトの `npx wrangler deploy` は confirm になる。
 
 ## 確認済みと、まだ実行していないこと
 

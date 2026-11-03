@@ -297,7 +297,7 @@ export function acceptSummary(state, root, by) {
       hearing: { ...state.hearing, summaryAccepted: true },
       deploy: {
         milestones: state.deploy.milestones.map((milestone) =>
-          milestone.id === "v1" ? { ...milestone, command: "cf deploy" } : milestone,
+          milestone.id === "v1" ? { ...milestone, command: "npx wrangler deploy" } : milestone,
         ),
       },
     };
@@ -622,8 +622,11 @@ export function confirmDeploy(state, milestoneId, decision, by, reason) {
   if (milestone.decision) {
     throw new Error(`${milestoneId} は確認済みです`);
   }
-  if (!milestone.command || /wrangler/i.test(milestone.command)) {
-    throw new Error("デプロイコマンドが空か、Wrangler を含んでいます");
+  if (!milestone.command) {
+    throw new Error("デプロイコマンドが空です");
+  }
+  if (/wrangler/i.test(milestone.command) && state.track !== "site") {
+    throw new Error("アプリのデプロイコマンドに Wrangler は使えません");
   }
   const milestones = state.deploy.milestones.map((item) =>
     item.id === milestoneId
@@ -666,10 +669,17 @@ export function markDeploy(state, milestoneId, exitCode) {
   };
 }
 
-export function classifyCommand(command) {
+export function classifyCommand(command, options = {}) {
+  const track = options.track ?? null;
   const normalized = command.trim();
   if (/wrangler/i.test(normalized)) {
-    return { class: "forbidden", reason: "mamestack は Wrangler を使いません" };
+    if (track !== "site") {
+      return { class: "forbidden", reason: "アプリは Wrangler を使いません。サイト（Astro）だけが使います" };
+    }
+    if (/\bdeploy\b/.test(normalized) || /\b(delete|secret)\b/i.test(normalized) || /\b--force\b/.test(normalized)) {
+      return { class: "confirm", reason: "サイトの Wrangler デプロイは公開であり、費用がかかることがあります" };
+    }
+    return { class: "allow", reason: "" };
   }
   const confirmers = [
     { re: /\bcf\s+deploy\b/, reason: "cf deploy は公開であり、費用がかかることがあります" },
@@ -754,7 +764,7 @@ export function nextAction(state) {
         return {
           code: "implement",
           message:
-            "サイトの実装です。最初に空ページを出します。cf deploy は guard と利用者の確認が要ります。docs/cloudflare-deploy.md が Astro を未対応としている間は実行せず、その旨を伝えます。Wrangler には切り替えません。その後に中身を作り、PR を1枚と検証動画を残して attach-pr します。本番 URL の確認はデプロイ工程です。",
+            "サイトの実装です。最初に空ページを npx wrangler deploy で本番に出します。実行前に guard --root <プロダクト> --command \"npx wrangler deploy\" と利用者の確認が要ります。出た本番 URL を見てから中身を作り、PR を1枚と検証動画を残して attach-pr します。アプリに Wrangler は使いません。",
         };
       }
       const open = state.tickets.items.find((item) => !item.pr);
@@ -767,7 +777,7 @@ export function nextAction(state) {
       return {
         code: "confirm-deploy",
         message:
-          "デプロイは費用と公開を伴います。サイトもアプリも、本番 URL で表示を確認します。必ず利用者に確認してください。docs/cloudflare-deploy.md の未検証項目が残っているコマンドは実行せず、その旨を伝えて skip か待機を選んでもらいます。Wrangler には切り替えません。確認後に confirm-deploy --by user。",
+          "デプロイは費用と公開を伴います。サイトもアプリも、本番 URL で表示を確認します。必ず利用者に確認してください。サイトの公開コマンドは npx wrangler deploy、アプリは cf か Void CLI です。docs/cloudflare-deploy.md の未検証項目が残っているコマンドは実行せず、その旨を伝えて skip か待機を選んでもらいます。確認後に confirm-deploy --by user。",
       };
     case "done":
       return { code: "done", message: "このプロダクトの mamestack 工程は閉じました。" };
@@ -949,7 +959,7 @@ export function validate(state, root) {
     }
   }
   for (const milestone of state.deploy.milestones) {
-    if (milestone.command && /wrangler/i.test(milestone.command)) {
+    if (milestone.command && /wrangler/i.test(milestone.command) && state.track !== "site") {
       fail("デプロイコマンドに Wrangler が含まれています");
     }
     if ((milestone.decision || milestone.executed) && milestone.confirmedBy !== "user") {

@@ -252,7 +252,7 @@ test("サイトは承認を待たず実装に入り、PR の動画が要る", ()
   state = acceptSummary(state, root, "bot");
   assert.equal(state.phase, "implement");
   assert.equal(state.track, "site");
-  assert.equal(state.deploy.milestones[0].command, "cf deploy");
+  assert.equal(state.deploy.milestones[0].command, "npx wrangler deploy");
   write(
     root,
     "docs/prs/T1.md",
@@ -325,6 +325,9 @@ test("init は PRD と Design Doc のテンプレートを docs に置く", () =
 
 test("Wrangler は確認しても禁止で、cf deploy は確認が要る", () => {
   assert.equal(classifyCommand("npx wrangler deploy").class, "forbidden");
+  assert.equal(classifyCommand("npx wrangler deploy", { track: "app" }).class, "forbidden");
+  assert.equal(classifyCommand("npx wrangler deploy", { track: "site" }).class, "confirm");
+  assert.equal(classifyCommand("npx wrangler dev", { track: "site" }).class, "allow");
   assert.equal(classifyCommand("cf deploy").class, "confirm");
   assert.equal(classifyCommand("void deploy --platform cloudflare").class, "confirm");
   assert.equal(classifyCommand("cf d1 query db --sql 'DROP TABLE hours'").class, "confirm");

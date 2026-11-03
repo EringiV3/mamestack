@@ -38,7 +38,7 @@
 - `worker.domains` がカスタムドメインの配列。
 - Deploy your first Worker のページ: Astro を検出してもビルドできるとは限らず、Astro 6 以降はベータ中 `cf` でビルドできない、という趣旨。原文は英語のページ。
 - 非対話の破壊的コマンドは `--force` が無いと `Aborted.` かつ終了コード 0 があり得る。
-- Wrangler 向けの Astro 案内（`npm create cloudflare@latest -- my-astro-app --framework=astro` や `npx wrangler deploy`）は https://developers.cloudflare.com/workers/framework-guides/web-apps/astro/ に残っている。mamestack はそれを採用しない。
+- Wrangler 向けの Astro 案内（`npm create cloudflare@latest -- my-astro-app --framework=astro` や `npx wrangler deploy`）は https://developers.cloudflare.com/workers/framework-guides/web-apps/astro/ に残っている。サイト（Astro）のビルドとデプロイはこれを使う。アプリは使わない。
 
 ## Playwright
 

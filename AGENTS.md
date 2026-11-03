@@ -4,7 +4,7 @@ Canonical repository: https://github.com/EringiV3/mamestack (Cursor Origin `mame
 
 Normative rules, in English, so they survive a weak pass over the Japanese below:
 
-- Hearing chooses the track. `static` with data starting `なし` is a website (Astro): after the hearing note, skip PRD, mockup, mode, design, and ticket splits. Write the seven answers briefly in `docs/00-hearing.md` and run `accept-summary --by bot` without asking for approval. Implement by deploying an empty page first, then the content, then one pull request with a verification video, then check the production URL. `cf deploy` still needs `guard` and a user yes. Where `docs/cloudflare-deploy.md` blocks Astro, stop and say so. Do not use Wrangler.
+- Hearing chooses the track. `static` with data starting `なし` is a website (Astro): after the hearing note, skip PRD, mockup, mode, design, and ticket splits. Write the seven answers briefly in `docs/00-hearing.md` and run `accept-summary --by bot` without asking for approval. Deploy an empty page to production first with `npx wrangler deploy` (guard with `--root`, then a user yes), then build the content, then one pull request with a verification video, then check the production URL. Websites may build and deploy with Wrangler.
 - Anything else is an app (Void): hearing → PRD → mockup → mode → design → tickets → implement → deploy. Do not skip or reorder those. The first ticket is T1 titled `空のアプリをCloudflare本番に出す` (repo, Void, needed D1 or other resources and bindings, deploy with `cf` or the Void CLI, confirm the production URL). Later pull requests stay deployable. Deploy and resource creation still need a user yes.
 - Ask one hearing question at a time. The only wording is what `node tools/gate/cli.mjs next` prints.
 - At PRD (apps only), copy `templates/prd.md` to `docs/prd.md` and fill it. Ask at most three questions per turn, only what is still missing for the pitch, target and problem, success metrics, features (P0/P1/P2/Won't), screen flow, monetization and cost, and GTM. Do not ask again when the answer is already known. Do not delete unused sections; write 該当なし. Keep the maximum of three features. If `who` starts with `自分だけ`, do not ask the revenue model, pricing, GTM, differentiation, or the revenue and growth success rows. Write `該当なし（自分用）` there. Fill infrastructure cost as the Cloudflare free tier. Do not edit the template.
@@ -12,7 +12,7 @@ Normative rules, in English, so they survive a weak pass over the Japanese below
 - After the user accepts the PRD, build a dependency-free HTML mock of the PRD screen flow and P0 screens only, under `docs/mockup/` (`index.html` links to each screen). Show phone-width and desktop-width screenshots and wait for OK. The OK is required in both modes. Revise and show again when asked. Reflect spec changes in `docs/prd.md`. Do not add a feature; a fourth feature is a note for the next version, in the PRD Won't row. The mock aligns the overall image and rough UI only. It is not the visual source of truth. Design and implementation may glance at it. Do not compare implementation PRs against it.
 - After the user accepts the mockup, ask once: `full-auto` or `approval`.
 - In both modes, destructive data operations and anything that costs money stop for an explicit user yes. Run `node tools/gate/cli.mjs guard --command "<exact command>"` first. Exit 3 means wait. Exit 4 means the command is forbidden.
-- Websites use Astro. Applications use Void (Void SDK, deployed with the Void CLI). Host on Cloudflare. Deploy with `cf` or the Void CLI. Do not use Wrangler, and do not switch to it when `cf` cannot build the project.
+- Websites use Astro and may build and deploy with Wrangler. Applications use Void (Void SDK, deployed with the Void CLI). Host on Cloudflare. Apps deploy with `cf` or the Void CLI, not Wrangler.
 - One pull request per ticket. A PR without a verification video is not done. Record it with `tools/verify-record/record.mjs`. The gate rejects a missing, tiny, or non-video file.
 - Where `docs/cloudflare-deploy.md` says TODO, stop and say so. Do not invent CLI flags.
 
@@ -97,7 +97,7 @@ OK はモードに関係なく利用者からもらう。OK なら `approve-mock
 
 利用者にしか決められないこと（認証、課金、ドメインなど）だけ聞く。ヒアリングと PRD で答えが出ている項目は聞き直さない。
 
-テンプレートに wrangler とあっても、コマンドは cf / Void CLI に読み替える。
+アプリのテンプレートに wrangler とあっても、コマンドは cf / Void CLI に読み替える。サイト（Astro）のビルドとデプロイは Wrangler を使う。
 
 フレームワークは次で、例外を黙って作らない。
 
@@ -128,7 +128,7 @@ OK はモードに関係なく利用者からもらう。OK なら `approve-mock
 
 ### サイト
 
-空ページを先に出す。`cf deploy` は `guard` と利用者の確認が要る。`docs/cloudflare-deploy.md` が Astro を未対応としている間は実行せず、その旨を伝える。Wrangler には切り替えない。その後に中身を作り、PR を1枚と検証動画を残して `attach-pr` する。
+最初に空ページを `npx wrangler deploy` で本番に出す。実行前に `guard --root <プロダクト> --command "npx wrangler deploy"` と利用者の確認が要る。出た URL を見てから中身を作り、PR を1枚と検証動画を残して `attach-pr` する。
 
 ### アプリ
 
@@ -146,11 +146,11 @@ OK はモードに関係なく利用者からもらう。OK なら `approve-mock
 
 ## 8. デプロイ
 
-マイルストーンは v1 の公開一つをゲートが持つ。コマンドはサイトが `cf deploy`、アプリが `void deploy`。サイトはヒアリングの直後に、アプリは設計の確定時に固定される。本番 URL で表示を確認する。
+マイルストーンは v1 の公開一つをゲートが持つ。コマンドはサイトが `npx wrangler deploy`、アプリが `void deploy`。サイトはヒアリングの直後に、アプリは設計の確定時に固定される。本番 URL で表示を確認する。
 
 利用者に、何が公開され、何が未検証で、費用が出るかを伝えてから `confirm-deploy --by user --decision run|skip`。`run` のあとだけコマンドを実行し、成功したら `mark-deploy --exit 0`。失敗したら mark せず、直してからまた確認する。
 
-`docs/cloudflare-deploy.md` が TODO としている操作は、run を提案しない。現状、Astro 6 以降（2026-11-03 時点の最新は Astro 7 系）は `cf` ベータでビルドできないと Cloudflare 公式が書いている。Astro のプロダクトでは、その記述が消えたことを `cf docs search` か公式ページで確認できるまでデプロイしない。Void に乗り換えず、Wrangler にも切り替えない。
+`docs/cloudflare-deploy.md` が TODO としている操作は、run を提案しない。サイト（Astro）は `cf` ではビルドできないため、ビルドとデプロイに Wrangler を使う。アプリは Wrangler に切り替えない。
 
 独自ドメインの購入コマンドは未検証である。購入は費用がかかるので、コマンド名が公式で分かるまで実行しない。
 

@@ -132,7 +132,11 @@ function main() {
     if (shell === "") {
       throw new Error("--command を指定してください");
     }
-    const result = classifyCommand(shell);
+    let track = null;
+    if (typeof args.root === "string" && args.root !== "") {
+      track = load(path.resolve(args.root)).track ?? null;
+    }
+    const result = classifyCommand(shell, { track });
     if (result.class === "allow") {
       console.log("allow");
       return;
