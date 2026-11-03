@@ -62,7 +62,11 @@ void project rollback
 
 生成したアプリの `scripts.deploy` は `void deploy --platform cloudflare`。呼び出しは `npm run deploy`。`void init --deploy none` のあと、プラットフォーム無しの `void deploy` では公開先が決まらない。
 
-`void deploy` は資源を作りマイグレーションを適用する。初回と、マイグレーションがあるたびに確認する。Sandbox は Workers Paid と Containers が要る、と Deployment ページにある。スターターでそれを選ばない。
+`void deploy` は資源を作り、Worker を上げる前に D1 のマイグレーションを適用する。失敗しても適用が残ることがある。公開の前に `void db generate` を実行する。認証のテーブルも出る。`db/migrations` と `void.lock.json` をコミットする。初回と、マイグレーションがあるたびに確認する。Sandbox は Workers Paid と Containers が要る、と Deployment ページにある。スターターでそれを選ばない。
+
+Void が作った Worker、D1、KV、R2 を Void の外で消さない。消してしまったときは、`void.lock.json` の古い項目を除き、生成された `.void-wrangler.jsonc` と `dist` と `.cloudflare` を消してから出し直す。`--provision` では戻らない。エラーは 10041。
+
+`void db restore --platform cloudflare --bookmark=…` は、そのブックマークよりあとに書いたデータを消す。本番データなので確認が先。非対話の Void は「About to apply N migration(s)」を自分で受ける。止まるのはゲートの確認だけである。
 
 ## マイルストーン
 

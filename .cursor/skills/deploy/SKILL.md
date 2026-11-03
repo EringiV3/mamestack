@@ -18,5 +18,9 @@ node tools/gate/cli.mjs guard --root <root> --command "<実行する一行>"
 
 exit 3 は利用者の確認待ち、exit 4 は実行しない。確認の範囲は [docs/modes.md](../../../docs/modes.md)。
 
-5. 出た本番 URL を開いて、表示を確認する。
-6. 課金、ドメインの購入や DNS の変更、本番データの削除は、ゲートの結果にかかわらず必ず利用者に確認してから行う。
+5. アプリは、公開の前に `void db generate` を実行する。認証のテーブルも出る。`db/migrations` と `void.lock.json` をコミットしてから `npm run deploy` する。
+6. Void が作った Worker、D1、KV、R2 を Void の外で消さない。消してしまったときは、`void.lock.json` の古い項目を除き、生成された `.void-wrangler.jsonc` と `dist` と `.cloudflare` を消してから出し直す。`--provision` では戻らない。エラーは 10041。
+7. `npm run deploy` は Worker を上げる前に D1 のマイグレーションを適用する。失敗しても適用が残ることがある。`void db restore --platform cloudflare --bookmark=…` は、そのブックマークよりあとに書いたデータを消す。本番データなので、先に `guard` と利用者の確認を取る。
+8. 非対話の Void は「About to apply N migration(s)」のような確認を自分で受ける。止まるのは mamestack のゲート確認だけである。
+9. 出た本番 URL を開いて、表示を確認する。
+10. 課金、ドメインの購入や DNS の変更、本番データの削除は、ゲートの結果にかかわらず必ず利用者に確認してから行う。R2 を初めて有効にするときも、請求情報を聞くので確認する。
