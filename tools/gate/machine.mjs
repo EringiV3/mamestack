@@ -29,7 +29,7 @@ export const QUESTIONS = {
   shape:
     "ウェブサイト（Astro・保存しない静的サイト）なら static、ウェブアプリ（Void・操作や保存がある）なら dynamic と答えてください。保存があるなら dynamic です。",
   features:
-    "機能は3つまでです。それぞれ名前と、v1 で入れるか後回し（later）かを決めてください。",
+    "機能の数に上限はありません。挙がった機能をすべて挙げ、それぞれ名前と、v1 で入れるか後回し（later）かを決めてください。later は、後回しにすると明示したものだけです。",
   data: "保存するデータは何ですか。無いなら、答えを「なし」から始めてください。",
   look: "見た目と雰囲気を教えてください。参考にしたいものや、避けたい印象があればそれも。",
   domain:
@@ -173,8 +173,8 @@ export function parseFeatures(text) {
       '機能は JSON 配列で渡してください。例: [{"name":"営業時間","release":"v1"}]',
     );
   }
-  if (!Array.isArray(value) || value.length < 1 || value.length > 3) {
-    throw new Error("機能は1つ以上、3つまでです");
+  if (!Array.isArray(value) || value.length < 1) {
+    throw new Error("機能は1つ以上です");
   }
   const features = value.map((feature) => {
     if (!feature || typeof feature.name !== "string" || feature.name.trim() === "") {
@@ -763,13 +763,13 @@ export function nextAction(state) {
       return {
         code: "write-prd",
         message:
-          "templates/prd.md を docs/prd.md に写して埋めてください。init で置いてあればそれを使います。エレベーターピッチ、ターゲットと課題、成功指標、機能要件（P0/P1/P2/Won't）、画面フロー、マネタイズ・コスト、GTM を埋めます。答えが出ている項目は聞き直さず、不足だけを1回3問まで聞いてください。機能は最大3つです。削らず、不要な箇所は「該当なし」と書きます。who が「自分だけ」で始まるときは、収益モデル、プライシング、GTM、既存サービスとの差別化、成功指標の収益・グロース行は聞かないで「該当なし（自分用）」と書きます。インフラ許容コストは Cloudflare 無料枠を前提に埋めます。テンプレートの見出しは残します。全文を見せ、OK なら approve-prd --by user を実行します。",
+          "templates/prd.md を docs/prd.md に写して埋めてください。init で置いてあればそれを使います。エレベーターピッチ、ターゲットと課題、成功指標、機能要件（P0/P1/P2/Won't）、画面フロー、マネタイズ・コスト、GTM を埋めます。答えが出ている項目は聞き直さず、不足だけを1回3問まで聞いてください。機能の数に上限はありません。挙がった機能はすべて書きます。利用者が明示して後回しにしたものだけを「次の版」のメモ（Won't）に残します。行が足りなければ足します。削らず、不要な箇所は「該当なし」と書きます。who が「自分だけ」で始まるときは、収益モデル、プライシング、GTM、既存サービスとの差別化、成功指標の収益・グロース行は聞かないで「該当なし（自分用）」と書きます。インフラ許容コストは Cloudflare 無料枠を前提に埋めます。テンプレートの見出しは残します。全文を見せ、OK なら approve-prd --by user を実行します。",
       };
     case "mockup":
       return {
         code: "write-mockup",
         message:
-          "PRD の画面フローと P0 の画面だけを、依存なしの HTML と CSS で docs/mockup/ に置いてください。index.html から各画面へリンクします。JS は画面切替など最小限、データはダミーです。スマホ幅と PC 幅のスクショを撮り、利用者に見せてください。修正が来たら直して再提示し、仕様に関わる変更は docs/prd.md にも反映します。機能は足しません。4つ目は次の版のメモとして PRD の Won't に残します。これは全体のイメージと大まかな UI のすり合わせで、見た目の正にはしません。OK はモードに関係なく利用者からもらいます。OK なら approve-mockup --by user を実行します。",
+          "PRD の画面フローと P0 の画面だけを、依存なしの HTML と CSS で docs/mockup/ に置いてください。index.html から各画面へリンクします。JS は画面切替など最小限、データはダミーです。スマホ幅と PC 幅のスクショを撮り、利用者に見せてください。修正が来たら直して再提示し、仕様に関わる変更は docs/prd.md にも反映します。機能は足しません。利用者が明示して後回しにした機能だけを、次の版のメモとして PRD の Won't に残します。これは全体のイメージと大まかな UI のすり合わせで、見た目の正にはしません。OK はモードに関係なく利用者からもらいます。OK なら approve-mockup --by user を実行します。",
       };
     case "mode":
       return {
