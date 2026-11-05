@@ -14,6 +14,7 @@ Normative rules, in English, so they survive a weak pass over the Japanese below
 - In both modes, destructive data operations and anything that costs money stop for an explicit user yes. Run `node tools/gate/cli.mjs guard --command "<exact command>"` first. Exit 3 means wait. Exit 4 means the command is forbidden.
 - Websites use Astro and may build and deploy with Wrangler. Applications use Void (Void SDK, deployed with the Void CLI). Host on Cloudflare. Apps deploy with `cf` or the Void CLI, not Wrangler.
 - One pull request per ticket. A PR without a verification video is not done. Record it with `tools/verify-record/record.mjs`. The gate rejects a missing, tiny, or non-video file.
+- After tickets are split, repeat until no ticket is unstarted. One pull request at a time, not in parallel. Hand the top unstarted ticket whose dependencies are done to implementation. Check that CI is green or a Playwright video exists, and fix what is missing. If CI fails or the video is missing twice in a row on the same ticket, stop and ask the user. In full-auto the bot merges; in approval, wait for the user's approve and merge. Deploy, confirm the production URL works, mark the ticket done, and report in one or two lines. When none are unstarted, report the pull requests, the production URL, and the next-version note, then stop.
 - Where `docs/cloudflare-deploy.md` says TODO, stop and say so. Do not invent CLI flags.
 
 日本語の手順が上の規則と食い違って見えたら、上の規則を採る。
@@ -132,7 +133,7 @@ OK はモードに関係なく利用者からもらう。OK なら `approve-mock
 
 ### アプリ
 
-開いているチケットを一つだけ実装する。PR は一枚。T1 の空の公開は [docs/cloudflare-deploy.md](docs/cloudflare-deploy.md) の空の公開で、実装中に記録する。各 PR のあと、本番に出せる状態を保つ。デプロイそのものは利用者の確認が要る。
+実装ループで、依存が片付いた未着手チケットの一番上だけを実装する。PR は一枚。並列にしない。T1 の空の公開は [docs/cloudflare-deploy.md](docs/cloudflare-deploy.md) の空の公開で、実装中に記録する。各 PR のあと、本番に出せる状態を保つ。デプロイそのものは利用者の確認が要る。
 
 1. ローカルで受入条件を満たす。
 2. `docs/verification-video.md` の手順で Playwright の動画を録る。終了コードが 0 のときだけ次へ進む。
@@ -143,6 +144,19 @@ OK はモードに関係なく利用者からもらう。OK なら `approve-mock
 動画ファイルがディスクにあり、WebM か MP4 で、1KB より大きいことをゲートが見る。リンクだけの PR は完了にならない。モックとの差分確認はしない。
 
 全チケットが付いたら phase は `deploy` になる。
+
+### 実装ループ
+
+チケット分割のあと、未着手チケットがなくなるまで繰り返す。PR は1つずつ順番に進める。並列にしない。未着手は、まだ PR が付いていないチケットである。
+
+1. 依存が片付いた未着手チケットの一番上を1つ選んで実装に回す。
+2. PR の CI が緑か、Playwright 動画があるかを確かめ、欠けていれば直す。
+3. 同じチケットで CI 失敗か動画の欠けが2回続いたら、ループを止めて利用者に相談する。
+4. full-auto ならボットがマージする。approval なら利用者の approve とマージを待つ。
+5. デプロイして本番 URL で動くのを確かめ、チケットを完了にして1〜2行で報告する。
+6. 未着手がなくなったら、PR・本番 URL・「次の版」メモをまとめて報告して止まる。
+
+デプロイは利用者の確認が要る。ゲートの `v1` は、未着手が尽きたあと phase が `deploy` になってから記録する。各周のチケット完了は `attach-pr` である。
 
 ## 8. デプロイ
 

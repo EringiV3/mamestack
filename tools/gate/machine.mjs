@@ -736,7 +736,34 @@ export function classifyCommand(command, options = {}) {
   return { class: "allow", reason: "" };
 }
 
-export function nextAction(state) {
+function dependencyIds(body) {
+  const line = body.match(/^-\s*依存:\s*(.*)$/m);
+  if (!line) {
+    return [];
+  }
+  return line[1].match(/T[1-9][0-9]*/g) ?? [];
+}
+
+function firstReadyTicket(state, root) {
+  const done = new Set(state.tickets.items.filter((item) => item.pr).map((item) => item.id));
+  return state.tickets.items.find((item) => {
+    if (item.pr) {
+      return false;
+    }
+    if (!root) {
+      return true;
+    }
+    let body;
+    try {
+      body = readRequired(root, item.path);
+    } catch {
+      return true;
+    }
+    return dependencyIds(body).every((id) => done.has(id));
+  });
+}
+
+export function nextAction(state, root) {
   switch (state.phase) {
     case "hearing": {
       const key = firstMissingKey(state);
@@ -796,10 +823,17 @@ export function nextAction(state) {
             "サイトの実装です。最初に空ページを出します。confirm-deploy --milestone empty --by user のあと npm run deploy し、成功したら mark-deploy --milestone empty --exit 0。v1 は検証動画のあとです。手順は docs/cloudflare-deploy.md の空の公開。アプリに Wrangler は使いません。",
         };
       }
-      const open = state.tickets.items.find((item) => !item.pr);
+      const open = firstReadyTicket(state, root);
+      if (!open) {
+        return {
+          code: "implement",
+          message:
+            "依存が片付いた未着手チケットがありません。ループを止めて利用者に相談してください。",
+        };
+      }
       return {
         code: "implement",
-        message: `チケット ${open?.id ?? "?"} だけを実装し、PR を1枚作り、検証動画を録画してください。動画の無い PR は完了になりません。T1 の空の公開は confirm-deploy --milestone empty で、実装中に記録します。v1 は全動画のあとです。各 PR のあと本番に出せる状態を保ちます。デプロイそのものは利用者の確認が要ります。モックとの差分確認はしません。approval なら PR ごとに利用者の OK を取ります。`,
+        message: `チケット分割のあと、未着手がなくなるまで繰り返します。PR は1つずつ順番です。並列にしません。今はチケット ${open.id} だけです。依存が片付いた未着手の一番上です。実装して PR を1枚作り、CI が緑か Playwright の動画があるかを確かめ、欠けていれば直します。同じチケットで CI 失敗か動画の欠けが2回続いたら止めて利用者に相談します。full-auto ならボットがマージし、approval なら利用者の approve とマージを待ちます。デプロイして本番 URL で動くのを確かめ、チケットを完了にして1〜2行で報告します。デプロイは利用者の確認が要ります。T1 の空の公開は confirm-deploy --milestone empty で実装中に記録します。ゲートの v1 は未着手が尽きたあとです。未着手がなくなったら PR・本番 URL・「次の版」メモをまとめて報告して止まります。動画の無い PR は完了になりません。モックとの差分確認はしません。`,
       };
     }
     case "deploy":

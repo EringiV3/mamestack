@@ -19,6 +19,7 @@ import {
   markDeploy,
   createState,
   EMPTY_APP_TICKET_TITLE,
+  nextAction,
   setMode,
   validate,
 } from "./machine.mjs";
@@ -331,6 +332,49 @@ test("空の公開はチケット確定前にはできない", () => {
     () => confirmDeploy(state, "empty", "run", "user", "設計の直後に空のアプリを出したい"),
     /implement/,
   );
+});
+
+test("実装の next は依存が片付いた未着手の一番上を示す", () => {
+  const root = tempRoot();
+  let state = readyToImplement(root, "approval");
+  write(
+    root,
+    "docs/tickets/T1.md",
+    `T1\n${EMPTY_APP_TICKET_TITLE}\n- 依存: なし\n受入条件\n本番 URL に空のアプリが出る\n`,
+  );
+  write(
+    root,
+    "docs/tickets/T2.md",
+    "T2\n営業時間を表示する\n- 依存: T3\n受入条件\n店名と時間が見える\n",
+  );
+  write(
+    root,
+    "docs/tickets/T3.md",
+    "T3\n営業時間を表示する\n- 依存: T1\n受入条件\n補足が見える\n",
+  );
+  state = {
+    ...state,
+    tickets: {
+      ...state.tickets,
+      items: [
+        { ...state.tickets.items[0], pr: { path: "docs/prs/T1.md", video: "recordings/t1.webm" } },
+        state.tickets.items[1],
+        {
+          id: "T3",
+          title: "営業時間を表示する",
+          size: "S",
+          feature: "営業時間を表示する",
+          path: "docs/tickets/T3.md",
+          pr: null,
+        },
+      ],
+    },
+  };
+  const next = nextAction(state, root);
+  assert.match(next.message, /チケット T3 だけ/);
+  assert.match(next.message, /並列にしません/);
+  write(root, "docs/tickets/T3.md", "T3\n営業時間を表示する\n- 依存: T2\n受入条件\n補足が見える\n");
+  assert.match(nextAction(state, root).message, /利用者に相談/);
 });
 
 test("アプリの最初のチケットは空の本番公開", () => {

@@ -71,7 +71,7 @@ function commit(root, state) {
     throw new Error(errors.join("\n"));
   }
   save(root, state);
-  const next = nextAction(state);
+  const next = nextAction(state, root);
   console.log(`phase: ${state.phase}`);
   console.log(next.message);
 }
@@ -179,7 +179,7 @@ function main() {
     return;
   }
   if (command === "next") {
-    const next = nextAction(state);
+    const next = nextAction(state, root);
     console.log(`phase: ${state.phase}`);
     console.log(next.message);
     return;
