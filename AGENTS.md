@@ -7,9 +7,9 @@ Normative rules, in English, so they survive a weak pass over the Japanese below
 - Hearing chooses the track. `static` with data starting `なし` is a website (Astro): after the hearing note, skip PRD, mockup, mode, design, and ticket splits. Write the seven answers briefly in `docs/00-hearing.md` and run `accept-summary --by bot` without asking for approval. Deploy an empty page to production first with `npm run deploy` (the script runs the pinned Wrangler; `guard --root` then a user yes), then build the content, then one pull request with a verification video, then check the production URL. Websites may build and deploy with Wrangler. Do not use `npx` to fetch a latest CLI, and do not install CLIs globally.
 - Anything else is an app (Void): hearing → PRD → mockup → mode → design → tickets → implement → deploy. Do not skip or reorder those. The first ticket is T1 titled `空のアプリをCloudflare本番に出す` (repo, Void, needed D1 or other resources and bindings, deploy with `cf` or the Void CLI, confirm the production URL). Later pull requests stay deployable. Deploy and resource creation still need a user yes.
 - Ask one hearing question at a time. The only wording is what `node tools/gate/cli.mjs next` prints.
-- At PRD (apps only), copy `templates/prd.md` to `docs/prd.md` and fill it. Ask at most three questions per turn, only what is still missing for the pitch, target and problem, success metrics, features (P0/P1/P2/Won't), screen flow, monetization and cost, and GTM. Do not ask again when the answer is already known. Do not delete unused sections; write 該当なし. Keep the maximum of three features. If `who` starts with `自分だけ`, do not ask the revenue model, pricing, GTM, differentiation, or the revenue and growth success rows. Write `該当なし（自分用）` there. Fill infrastructure cost as the Cloudflare free tier. Do not edit the template.
+- At PRD (apps only), copy `templates/prd.md` to `docs/prd.md` and fill it. Ask at most three questions per turn, only what is still missing for the pitch, target and problem, success metrics, features (P0/P1/P2/Won't), screen flow, monetization and cost, and GTM. Do not ask again when the answer is already known. Do not delete unused sections; write 該当なし. There is no limit on the number of features. Every feature raised goes into the PRD. Only a feature the user explicitly wants to defer goes in the next-version note (Won't). Add table rows when there are more features than the template shows. If `who` starts with `自分だけ`, do not ask the revenue model, pricing, GTM, differentiation, or the revenue and growth success rows. Write `該当なし（自分用）` there. Fill infrastructure cost as the Cloudflare free tier. Do not edit the template.
 - At design, copy `templates/design-doc.md` to `docs/design-doc.md` and fill every section. Ask only decisions only the user can make, such as auth, billing, and domain. Do not ask again when the answer is already known. Do not delete unused sections; write 該当なし.
-- After the user accepts the PRD, build a dependency-free HTML mock of the PRD screen flow and P0 screens only, under `docs/mockup/` (`index.html` links to each screen). Show phone-width and desktop-width screenshots and wait for OK. The OK is required in both modes. Revise and show again when asked. Reflect spec changes in `docs/prd.md`. Do not add a feature; a fourth feature is a note for the next version, in the PRD Won't row. The mock aligns the overall image and rough UI only. It is not the visual source of truth. Design and implementation may glance at it. Do not compare implementation PRs against it.
+- After the user accepts the PRD, build a dependency-free HTML mock of the PRD screen flow and P0 screens only, under `docs/mockup/` (`index.html` links to each screen). Show phone-width and desktop-width screenshots and wait for OK. The OK is required in both modes. Revise and show again when asked. Reflect spec changes in `docs/prd.md`. Do not add a feature. Only a feature the user explicitly wants to defer is a note for the next version, in the PRD Won't row. The mock aligns the overall image and rough UI only. It is not the visual source of truth. Design and implementation may glance at it. Do not compare implementation PRs against it.
 - After the user accepts the mockup, ask once: `full-auto` or `approval`.
 - In both modes, destructive data operations and anything that costs money stop for an explicit user yes. Run `node tools/gate/cli.mjs guard --command "<exact command>"` first. Exit 3 means wait. Exit 4 means the command is forbidden.
 - Websites use Astro and may build and deploy with Wrangler. Applications use Void (Void SDK, deployed with the Void CLI). Host on Cloudflare. Apps deploy with `cf` or the Void CLI, not Wrangler.
@@ -37,7 +37,7 @@ node tools/gate/cli.mjs next --root <プロダクトのルート>
 答えは短くても、ゲートが求める形を守る。
 
 - `shape` は `static`（サイト、Astro）か `dynamic`（アプリ、Void）だけ。保存があるなら `dynamic`。
-- `features` は JSON で 1〜3 個。各要素は `name` と `release`（`v1` か `later`）。v1 が一つは要る。
+- `features` は JSON 配列で、1個以上、上限はない。各要素は `name` と `release`（`v1` か `later`）。v1 が一つは要る。`later` は、利用者が明示して後回しにしたものだけ。
 - 保存が無いとき、`data` は「なし」で始める。ドメインを使わないとき、`domain` も「なし」で始める。
 - 使うのが自分だけのとき、`who` は「自分だけ」で始める。
 
@@ -54,7 +54,7 @@ node tools/gate/cli.mjs next --root <プロダクトのルート>
 
 埋めるのは次である。エレベーターピッチ、ターゲットと課題、成功指標、機能要件（P0 / P1 / P2 / Won't）、画面フロー、マネタイズ・コスト、GTM。
 
-ヒアリングで答えが出ている項目は聞き直さない。足りないことだけを、1回につき3問まで聞く。機能はヒアリングと同じで最大3つ。行やセクションが余っても削らず、「該当なし」と書く。ヒアリングの機能名は機能要件に残す。
+ヒアリングで答えが出ている項目は聞き直さない。足りないことだけを、1回につき3問まで聞く。機能の数に上限はない。挙がった機能はすべて PRD に書く。利用者が明示して後回しにしたものだけを「次の版」のメモ（Won't）に残す。行やセクションが余っても削らず、「該当なし」と書く。表の行が足りなければ足す。ヒアリングの機能名は機能要件に残す。
 
 `who` が「自分だけ」で始まるときは、収益モデル、プライシング、リリース＆マーケティング計画（GTM）、既存サービスとの差別化、成功指標の収益・グロース行は質問しない。そこへ「該当なし（自分用）」と書く。インフラ許容コストは Cloudflare 無料枠を前提に埋める。テンプレート本文は変えない。
 
@@ -66,7 +66,7 @@ PRD の OK のあと、モードを聞く前に作る。`init` は `docs/mockup/
 
 PRD の画面フローと P0 の画面だけを、依存なしの HTML と CSS で置く。入口は `docs/mockup/index.html` で、各画面へリンクする。JS は画面切替など最小限、データはダミー。外部の script や stylesheet は置かない。
 
-スマホ幅と PC 幅のスクショを撮り、利用者に見せる。修正が来たら直して、また見せる。仕様に関わる変更は `docs/prd.md` にも反映する。機能は足さない。4つ目は次の版のメモとして、PRD の Won't に一行残す。
+スマホ幅と PC 幅のスクショを撮り、利用者に見せる。修正が来たら直して、また見せる。仕様に関わる変更は `docs/prd.md` にも反映する。機能は足さない。利用者が明示して後回しにした機能だけを、次の版のメモとして PRD の Won't に残す。
 
 これは全体のイメージと大まかな UI をすり合わせるためのものである。見た目の正にはしない。Design Doc と実装では参考程度に見る。実装 PR でモックとの差は確認しない。
 

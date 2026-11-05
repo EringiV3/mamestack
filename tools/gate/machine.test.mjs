@@ -98,7 +98,7 @@ test("質問は一つずつで、先のキーは受け付けない", () => {
   assert.equal(once.hearing.answers.who, null);
 });
 
-test("機能は3つまでで、v1 が一つは要る", () => {
+test("機能は1つ以上で、v1 が一つは要る。個数の上限はない", () => {
   let state = answer(createState("demo"), "what", ANSWERS.what);
   state = answer(state, "who", ANSWERS.who);
   state = answer(state, "shape", "static");
@@ -106,13 +106,15 @@ test("機能は3つまでで、v1 が一つは要る", () => {
     () => answer(state, "features", JSON.stringify([{ name: "だけ", release: "later" }])),
     /v1/,
   );
+  assert.throws(() => answer(state, "features", "[]"), /1つ以上/);
   const four = [
     { name: "a", release: "v1" },
     { name: "b", release: "later" },
     { name: "c", release: "later" },
     { name: "d", release: "later" },
   ];
-  assert.throws(() => answer(state, "features", JSON.stringify(four)), /3つまで/);
+  const accepted = answer(state, "features", JSON.stringify(four));
+  assert.equal(accepted.hearing.answers.features.length, 4);
 });
 
 test("PRD の前にモードは決まらず、承認は利用者だけ", () => {
