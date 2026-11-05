@@ -40,7 +40,7 @@ npm の `cf@1.0.0-beta.27`（homepage は `github.com/cloudflare/cf`）が 2026-
 npm run deploy
 ```
 
-実行前に `guard --root <プロダクト> --command "npm run deploy"` と利用者の確認が要る。Void アプリへ作り替えない。アプリの `deploy` script は `void deploy --platform cloudflare` であり、Wrangler に切り替えない。`void init` は `--deploy none` なので、プラットフォームを script に書く。
+実行前に `guard --root <プロダクト> --command "npm run deploy"` を通す。approval とサイトは confirm のあと利用者の確認が要る。full-auto は allow で、デプロイの確認は待たない。Void アプリへ作り替えない。アプリの `deploy` script は `void deploy --platform cloudflare` であり、Wrangler に切り替えない。`void init` は `--deploy none` なので、プラットフォームを script に書く。
 
 ### Void CLI
 
@@ -76,8 +76,8 @@ Void が作った Worker、D1、KV、R2 を Void の外で消さない。消し�
 
 サイトはヒアリングの直後、phase が `implement` になったところである。アプリは設計とチケットの確定が終わったあと、同じく `implement` の T1「空のアプリをCloudflare本番に出す」である。`init` の直後にはしない。ここで `v1` は使わない。
 
-1. `confirm-deploy --root <root> --milestone empty --decision run --by user --reason "..."`
-2. `guard --root <root> --command "npm run deploy"` が confirm を返したら、利用者の確認のあと `npm run deploy`。
+1. approval とサイトは `confirm-deploy --root <root> --milestone empty --decision run --by user --reason "..."`。full-auto は `--by bot`。
+2. `guard --root <root> --command "npm run deploy"`。approval とサイトは confirm のあと利用者の確認。full-auto は allow なので確認を待たずに `npm run deploy`。
 3. 終了コード 0 なら `mark-deploy --root <root> --milestone empty --exit 0`。phase は `implement` のまま。
 4. 出た URL を開いて、空であることが見えることを確認する。
 
@@ -85,9 +85,9 @@ Void が作った Worker、D1、KV、R2 を Void の外で消さない。消し�
 
 1. 全チケットの検証動画が揃う（phase が `deploy`）。
 2. 上の未検証を利用者に見せる。
-3. 費用と、公開される URL の範囲を言う。
-4. `guard --command "<実行する一行>"` が confirm を返したら、返事を待つ。
-5. `confirm-deploy --milestone v1 --decision run --by user --reason "..."` のあとだけ実行する。
+3. approval とサイトは、費用と公開される URL の範囲を言って返事を待つ。full-auto はデプロイ自体を待たない。削除、ドメイン、課金は待つ。
+4. `guard --command "<実行する一行>"`。confirm なら返事を待つ。full-auto のデプロイは allow。
+5. approval とサイトは `confirm-deploy --milestone v1 --decision run --by user --reason "..."` のあとだけ実行する。full-auto は `--by bot`。
 6. 終了コード 0 なら `mark-deploy --milestone v1 --exit 0`。
 
 アカウントが無い、または TODO が残っているなら `decision skip` と理由を残し、工程を閉じる。黙って未デプロイのまま done にしない。

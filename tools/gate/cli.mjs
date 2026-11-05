@@ -92,7 +92,7 @@ function printHelp() {
   add-ticket --root <dir> --id T1 --title <text> --size S|M --feature <name> --file <path>
   confirm-tickets --root <dir> --by user|bot
   attach-pr --root <dir> --ticket T1 --pr <path> --video <path>
-  confirm-deploy --root <dir> --milestone v1 --decision run|skip --by user --reason <text>
+  confirm-deploy --root <dir> --milestone v1 --decision run|skip --by user|bot --reason <text>
   mark-deploy --root <dir> --milestone v1 --exit 0
   guard --command <shell>
 `);
@@ -133,10 +133,13 @@ function main() {
       throw new Error("--command を指定してください");
     }
     let track = null;
+    let mode = null;
     if (typeof args.root === "string" && args.root !== "") {
-      track = load(path.resolve(args.root)).track ?? null;
+      const loaded = load(path.resolve(args.root));
+      track = loaded.track ?? null;
+      mode = loaded.mode ?? null;
     }
-    const result = classifyCommand(shell, { track });
+    const result = classifyCommand(shell, { track, mode });
     if (result.class === "allow") {
       console.log("allow");
       return;

@@ -39,7 +39,7 @@ export const QUESTIONS = {
 export const EMPTY_APP_TICKET_TITLE = "空のアプリをCloudflare本番に出す";
 
 const MODE_QUESTION =
-  "ここから先は、どちらにしますか。full-auto（この後はボットが進める。ただし破壊的なデータ操作と、費用のかかる操作は必ず確認する）か、approval（設計書、チケットの粒度、各 PR をあなたが承認する）か。";
+  "ここから先は、どちらにしますか。full-auto（この後はボットが進める。デプロイの確認はしない。ただし本番データの削除、ドメインの購入や変更、費用のかかる操作は必ず確認する）か、approval（設計書、チケットの粒度、各 PR、デプロイをあなたが承認する）か。";
 
 function hasPrdHeading(body) {
   return /^#\s.*PRD/m.test(body);
@@ -628,8 +628,18 @@ function assertEmptyDeploy(state) {
   }
 }
 
-export function confirmDeploy(state, milestoneId, decision, by, reason) {
+function assertDeployBy(state, by) {
+  if (state.mode === "full-auto") {
+    if (by !== "user" && by !== "bot") {
+      throw new Error("--by は user か bot です");
+    }
+    return;
+  }
   assertUser(by, "デプロイの確認");
+}
+
+export function confirmDeploy(state, milestoneId, decision, by, reason) {
+  assertDeployBy(state, by);
   if (milestoneId === "empty") {
     assertEmptyDeploy(state);
   } else if (state.phase !== "deploy") {
@@ -660,7 +670,7 @@ export function confirmDeploy(state, milestoneId, decision, by, reason) {
           ...item,
           decision,
           reason: reason.trim(),
-          confirmedBy: "user",
+          confirmedBy: by,
           executed: false,
         }
       : item,
@@ -679,7 +689,8 @@ export function markDeploy(state, milestoneId, exitCode) {
     throw new Error("実行結果を記録できるのはデプロイ確認の後です");
   }
   const milestone = state.deploy.milestones.find((item) => item.id === milestoneId);
-  if (!milestone || milestone.decision !== "run" || milestone.confirmedBy !== "user") {
+  const botMayRecord = state.mode === "full-auto" && milestone?.confirmedBy === "bot";
+  if (!milestone || milestone.decision !== "run" || (milestone.confirmedBy !== "user" && !botMayRecord)) {
     throw new Error("利用者が run を確認したマイルストーンだけ記録できます");
   }
   if (exitCode !== 0) {
@@ -697,28 +708,43 @@ export function markDeploy(state, milestoneId, exitCode) {
   };
 }
 
+function classifyDeploy(mode, reason) {
+  if (mode === "full-auto") {
+    return { class: "allow", reason: "" };
+  }
+  return { class: "confirm", reason };
+}
+
+function changesDns(normalized) {
+  if (/\bcf\s+(cli|docs)\s+search\b/.test(normalized)) {
+    return false;
+  }
+  return /\bdns\b/i.test(normalized);
+}
+
 export function classifyCommand(command, options = {}) {
   const track = options.track ?? null;
+  const mode = options.mode ?? null;
   const normalized = command.trim();
   if (/wrangler/i.test(normalized)) {
     if (track !== "site") {
       return { class: "forbidden", reason: "アプリは Wrangler を使いません。サイト（Astro）だけが使います" };
     }
-    if (/\bdeploy\b/.test(normalized) || /\b(delete|secret)\b/i.test(normalized) || /\b--force\b/.test(normalized)) {
-      return { class: "confirm", reason: "サイトの Wrangler デプロイは公開であり、費用がかかることがあります" };
+    if (/\b(delete|secret)\b/i.test(normalized) || /--force\b/.test(normalized)) {
+      return { class: "confirm", reason: "サイトの Wrangler の削除、シークレット、--force は確認が要ります" };
+    }
+    if (/\bdeploy\b/.test(normalized)) {
+      return classifyDeploy(mode, "サイトの Wrangler デプロイは approval とサイトでは利用者の確認が要ります");
     }
     return { class: "allow", reason: "" };
   }
   const confirmers = [
-    { re: /\bnpm\s+run\s+deploy\b/, reason: "npm run deploy は公開であり、費用がかかることがあります" },
-    { re: /\bcf\s+deploy\b/, reason: "cf deploy は公開であり、費用がかかることがあります" },
-    { re: /\bvoid\s+deploy\b/, reason: "void deploy は資源の作成とマイグレーションを伴います" },
     { re: /\bvoid\s+secret\s+put\b/, reason: "本番シークレットの書き込みです" },
     { re: /\bvoid\s+db\s+restore\b/, reason: "データベースの復元は破壊的です" },
     { re: /\bvoid\s+project\s+rollback\b/, reason: "ロールバックです" },
     { re: /\bcf\s+\S+\s+delete\b/, reason: "削除です" },
     { re: /\bcf\s+(d1|kv|r2)\s+create\b/, reason: "資源の作成です。費用がかかることがあります" },
-    { re: /\b--force\b/, reason: "--force は破壊的操作に使われます" },
+    { re: /--force\b/, reason: "--force は破壊的操作に使われます" },
     { re: /\bpurchase\b/i, reason: "購入は費用がかかります" },
     { re: /\bregistrar\b/i, reason: "ドメインの購入や移管は費用がかかることがあります" },
   ];
@@ -727,11 +753,23 @@ export function classifyCommand(command, options = {}) {
       return { class: "confirm", reason: confirmer.reason };
     }
   }
+  if (changesDns(normalized)) {
+    return { class: "confirm", reason: "DNS を変える操作です" };
+  }
   if (
     /\bcf\s+d1\s+query\b/i.test(normalized) &&
     /\b(drop|delete|update|insert|alter|truncate)\b/i.test(normalized)
   ) {
     return { class: "confirm", reason: "D1 への書き込み SQL です" };
+  }
+  if (/\bnpm\s+run\s+deploy\b/.test(normalized)) {
+    return classifyDeploy(mode, "npm run deploy は approval とサイトでは利用者の確認が要ります");
+  }
+  if (/\bcf\s+deploy\b/.test(normalized)) {
+    return classifyDeploy(mode, "cf deploy は approval とサイトでは利用者の確認が要ります");
+  }
+  if (/\bvoid\s+deploy\b/.test(normalized)) {
+    return classifyDeploy(mode, "void deploy は approval では利用者の確認が要ります");
   }
   return { class: "allow", reason: "" };
 }
@@ -813,7 +851,7 @@ export function nextAction(state, root) {
       return {
         code: "write-tickets",
         message:
-          "最初のチケットは必ず T1「空のアプリをCloudflare本番に出す」です。リポジトリ作成、Void 導入、必要な D1 等の作成とバインディング、cf または Void CLI でのデプロイ、本番 URL の表示確認を受入条件にします。資源の作成とデプロイは利用者の確認が要ります。その後に v1 の機能チケットを足します。サイズ L は禁止です。各 PR のあと本番に出せる状態を保ちます。approval なら粒度の OK を待って confirm-tickets --by user。full-auto なら confirm-tickets --by bot。",
+          "最初のチケットは必ず T1「空のアプリをCloudflare本番に出す」です。リポジトリ作成、Void 導入、必要な D1 等の作成とバインディング、cf または Void CLI でのデプロイ、本番 URL の表示確認を受入条件にします。資源の作成は利用者の確認が要ります。デプロイは approval では確認し、full-auto では確認しません。その後に v1 の機能チケットを足します。サイズ L は禁止です。各 PR のあと本番に出せる状態を保ちます。approval なら粒度の OK を待って confirm-tickets --by user。full-auto なら confirm-tickets --by bot。",
       };
     case "implement": {
       if (state.track === "site") {
@@ -833,14 +871,14 @@ export function nextAction(state, root) {
       }
       return {
         code: "implement",
-        message: `チケット分割のあと、未着手がなくなるまで繰り返します。PR は1つずつ順番です。並列にしません。今はチケット ${open.id} だけです。依存が片付いた未着手の一番上です。実装して PR を1枚作り、CI が緑か Playwright の動画があるかを確かめ、欠けていれば直します。同じチケットで CI 失敗か動画の欠けが2回続いたら止めて利用者に相談します。full-auto ならボットがマージし、approval なら利用者の approve とマージを待ちます。デプロイして本番 URL で動くのを確かめ、チケットを完了にして1〜2行で報告します。デプロイは利用者の確認が要ります。T1 の空の公開は confirm-deploy --milestone empty で実装中に記録します。ゲートの v1 は未着手が尽きたあとです。未着手がなくなったら PR・本番 URL・「次の版」メモをまとめて報告して止まります。動画の無い PR は完了になりません。モックとの差分確認はしません。`,
+        message: `チケット分割のあと、未着手がなくなるまで繰り返します。PR は1つずつ順番です。並列にしません。今はチケット ${open.id} だけです。依存が片付いた未着手の一番上です。実装して PR を1枚作り、CI が緑か Playwright の動画があるかを確かめ、欠けていれば直します。同じチケットで CI 失敗か動画の欠けが2回続いたら止めて利用者に相談します。full-auto ならボットがマージし、approval なら利用者の approve とマージを待ちます。デプロイして本番 URL で動くのを確かめ、チケットを完了にして1〜2行で報告します。approval のデプロイは利用者の確認が要ります。full-auto のデプロイは確認しません。本番データの削除、ドメインの購入や変更、費用がかかる操作はどちらのモードでも確認します。T1 の空の公開は confirm-deploy --milestone empty で実装中に記録します。approval は --by user、full-auto は --by bot です。ゲートの v1 は未着手が尽きたあとです。未着手がなくなったら PR・本番 URL・「次の版」メモをまとめて報告して止まります。動画の無い PR は完了になりません。モックとの差分確認はしません。`,
       };
     }
     case "deploy":
       return {
         code: "confirm-deploy",
         message:
-          "デプロイは費用と公開を伴います。サイトもアプリも、本番 URL で表示を確認します。必ず利用者に確認してください。公開は npm run deploy です。サイトの script は固定バージョンの Wrangler、アプリは Void CLI と cf です。docs/cloudflare-deploy.md の未検証項目が残っているコマンドは実行せず、その旨を伝えて skip か待機を選んでもらいます。確認後に confirm-deploy --by user。",
+          "サイトもアプリも、本番 URL で表示を確認します。approval とサイトは利用者に確認してから confirm-deploy --by user。full-auto は confirm-deploy --by bot で、デプロイの確認は待ちません。本番データの削除、ドメインの購入や変更、費用がかかる操作は、モードに関係なく利用者に確認します。公開は npm run deploy です。サイトの script は固定バージョンの Wrangler、アプリは Void CLI と cf です。docs/cloudflare-deploy.md の未検証項目が残っているコマンドは実行せず、その旨を伝えて skip か待機を選んでもらいます。",
       };
     case "done":
       return { code: "done", message: "このプロダクトの mamestack 工程は閉じました。" };
@@ -1025,7 +1063,8 @@ export function validate(state, root) {
     if (milestone.command && /wrangler/i.test(milestone.command) && state.track !== "site") {
       fail("デプロイコマンドに Wrangler が含まれています");
     }
-    if ((milestone.decision || milestone.executed) && milestone.confirmedBy !== "user") {
+    const botMayConfirm = state.mode === "full-auto" && milestone.confirmedBy === "bot";
+    if ((milestone.decision || milestone.executed) && milestone.confirmedBy !== "user" && !botMayConfirm) {
       fail(`${milestone.id} をボットだけで確認しています`);
     }
     if (milestone.executed && milestone.decision !== "run") {

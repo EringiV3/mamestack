@@ -65,7 +65,7 @@ void connect --platform cloudflare
 void deploy --platform cloudflare
 ```
 
-`void deploy` はビルドし、資源を作り、`db/migrations/` の SQL を適用し、URL を出す。スキーマだけ変わっていると止まり、`void db generate` で SQL を出してから、人間が読んでコミットする。ロールバックはマイグレーションを戻さない。D1 では適用前に復元ポイントを残し、`void db restore` のコマンドを表示する、と Deployment にある。`void db restore` は破壊的なので、full-auto でも確認する。
+`void deploy` はビルドし、資源を作り、`db/migrations/` の SQL を適用し、URL を出す。スキーマだけ変わっていると止まり、`void db generate` で SQL を出してから、人間が読んでコミットする。ロールバックはマイグレーションを戻さない。D1 では適用前に復元ポイントを残し、`void db restore` のコマンドを表示する、と Deployment にある。`void db restore` は破壊的なので、full-auto でも確認する。`void deploy` 自体は、full-auto では確認しない。
 
 本番シークレットは `void secret put`。ローカルの `.env` はアップロードしない、と公式にある。確認してから置く。
 

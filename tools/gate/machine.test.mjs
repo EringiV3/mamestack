@@ -161,19 +161,22 @@ test("approval ではボットが設計書を確定できない", () => {
   );
 });
 
-test("full-auto でもデプロイ確認はボットだけでは通らない", () => {
+test("full-auto のデプロイはボットが確認でき、approval は利用者だけ", () => {
   const root = tempRoot();
   const deploying = readyToDeploy(root, "full-auto");
   assert.equal(deploying.phase, "deploy");
-  assert.throws(
-    () => confirmDeploy(deploying, "v1", "run", "bot", "ボットが公開すると決めた"),
-    /利用者/,
-  );
-  const withEmpty = confirmDeploy(deploying, "empty", "skip", "user", "テストでは空の公開を省略する");
-  assert.equal(withEmpty.phase, "deploy");
-  const done = confirmDeploy(withEmpty, "v1", "skip", "user", "アカウントが無いので公開しない");
+  const ran = confirmDeploy(deploying, "v1", "run", "bot", "ボットが公開すると決めた");
+  assert.equal(ran.deploy.milestones.find((item) => item.id === "v1").confirmedBy, "bot");
+  const marked = markDeploy(ran, "v1", 0);
+  assert.equal(marked.phase, "deploy");
+  const done = confirmDeploy(marked, "empty", "skip", "bot", "テストでは空の公開を省略する");
   assert.equal(done.phase, "done");
   assert.deepEqual(validate(done, root), []);
+  const approval = readyToDeploy(tempRoot(), "approval");
+  assert.throws(
+    () => confirmDeploy(approval, "v1", "run", "bot", "ボットが公開すると決めた"),
+    /利用者/,
+  );
 });
 
 test("動画の無い PR は付けられない", () => {
@@ -413,11 +416,22 @@ test("Wrangler は確認しても禁止で、cf deploy は確認が要る", () =
   assert.equal(classifyCommand("npx wrangler deploy").class, "forbidden");
   assert.equal(classifyCommand("npx wrangler deploy", { track: "app" }).class, "forbidden");
   assert.equal(classifyCommand("npx wrangler deploy", { track: "site" }).class, "confirm");
+  assert.equal(classifyCommand("npx wrangler deploy", { track: "site", mode: "full-auto" }).class, "allow");
+  assert.equal(classifyCommand("npx wrangler deploy", { track: "app", mode: "full-auto" }).class, "forbidden");
   assert.equal(classifyCommand("npx wrangler dev", { track: "site" }).class, "allow");
   assert.equal(classifyCommand("cf deploy").class, "confirm");
-  assert.equal(classifyCommand("npm run deploy").class, "confirm");
-  assert.equal(classifyCommand("void deploy --platform cloudflare").class, "confirm");
-  assert.equal(classifyCommand("cf d1 query db --sql 'DROP TABLE hours'").class, "confirm");
+  assert.equal(classifyCommand("cf deploy", { mode: "approval" }).class, "confirm");
+  assert.equal(classifyCommand("cf deploy", { mode: "full-auto" }).class, "allow");
+  assert.equal(classifyCommand("npm run deploy", { mode: "full-auto" }).class, "allow");
+  assert.equal(classifyCommand("void deploy --platform cloudflare", { mode: "full-auto" }).class, "allow");
+  assert.equal(classifyCommand("npm run deploy --force", { mode: "full-auto" }).class, "confirm");
+  assert.equal(classifyCommand("npx wrangler deploy --force", { track: "site", mode: "full-auto" }).class, "confirm");
+  assert.equal(classifyCommand("cf d1 query db --sql 'DROP TABLE hours'", { mode: "full-auto" }).class, "confirm");
+  assert.equal(classifyCommand("cf d1 delete hours", { mode: "full-auto" }).class, "confirm");
+  assert.equal(classifyCommand("cf d1 create hours", { mode: "full-auto" }).class, "confirm");
+  assert.equal(classifyCommand("cf registrar purchase example.com", { mode: "full-auto" }).class, "confirm");
+  assert.equal(classifyCommand("cf dns records update", { mode: "full-auto" }).class, "confirm");
+  assert.equal(classifyCommand("cf docs search dns", { mode: "full-auto" }).class, "allow");
   assert.equal(classifyCommand("cf zones list").class, "allow");
   assert.equal(classifyCommand("cf d1 query db --sql 'SELECT 1'").class, "allow");
 });

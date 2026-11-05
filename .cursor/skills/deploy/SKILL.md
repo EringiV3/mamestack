@@ -16,7 +16,7 @@ description: Deploy a mamestack product to Cloudflare and check the live URL. Us
 node tools/gate/cli.mjs guard --root <root> --command "<実行する一行>"
 ```
 
-exit 3 は利用者の確認待ち、exit 4 は実行しない。確認の範囲は [docs/modes.md](../../../docs/modes.md)。
+exit 3 は利用者の確認待ち、exit 4 は実行しない。full-auto のデプロイは allow で、確認を待たない。approval とサイトは待つ。確認の範囲は [docs/modes.md](../../../docs/modes.md)。
 
 5. アプリは、公開の前に `void db generate` を実行する。認証のテーブルも出る。`db/migrations` をコミットしてから `npm run deploy` する。`void.lock.json` は初回デプロイの直後にできるので、そのときコミットする。
 6. Void が作った Worker、D1、KV、R2 を Void の外で消さない。消してしまったときは、`void.lock.json` の古い項目を除き、生成された `.void-wrangler.jsonc` と `dist` と `.cloudflare` を消してから出し直す。`--provision` では戻らない。エラーは 10041。

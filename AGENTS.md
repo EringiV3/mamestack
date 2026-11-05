@@ -5,13 +5,13 @@ Canonical repository: https://github.com/EringiV3/mamestack (Cursor Origin `mame
 Normative rules, in English, so they survive a weak pass over the Japanese below:
 
 - Hearing chooses the track. `static` with data starting `なし` is a website (Astro): after the hearing note, skip PRD, mockup, mode, design, and ticket splits. Write the seven answers briefly in `docs/00-hearing.md` and run `accept-summary --by bot` without asking for approval. Deploy an empty page to production first with `npm run deploy` (the script runs the pinned Wrangler; `guard --root` then a user yes), then build the content, then one pull request with a verification video, then check the production URL. Websites may build and deploy with Wrangler. Do not use `npx` to fetch a latest CLI, and do not install CLIs globally.
-- Anything else is an app (Void): hearing → PRD → mockup → mode → design → tickets → implement → deploy. Do not skip or reorder those. The first ticket is T1 titled `空のアプリをCloudflare本番に出す` (repo, Void, needed D1 or other resources and bindings, deploy with `cf` or the Void CLI, confirm the production URL). Later pull requests stay deployable. Deploy and resource creation still need a user yes.
+- Anything else is an app (Void): hearing → PRD → mockup → mode → design → tickets → implement → deploy. Do not skip or reorder those. The first ticket is T1 titled `空のアプリをCloudflare本番に出す` (repo, Void, needed D1 or other resources and bindings, deploy with `cf` or the Void CLI, confirm the production URL). Later pull requests stay deployable. In approval, deploy needs a user yes. In full-auto, deploy does not. Resource creation still needs a user yes.
 - Ask one hearing question at a time. The only wording is what `node tools/gate/cli.mjs next` prints.
 - At PRD (apps only), copy `templates/prd.md` to `docs/prd.md` and fill it. Ask at most three questions per turn, only what is still missing for the pitch, target and problem, success metrics, features (P0/P1/P2/Won't), screen flow, monetization and cost, and GTM. Do not ask again when the answer is already known. Do not delete unused sections; write 該当なし. There is no limit on the number of features. Every feature raised goes into the PRD. Only a feature the user explicitly wants to defer goes in the next-version note (Won't). Add table rows when there are more features than the template shows. If `who` starts with `自分だけ`, do not ask the revenue model, pricing, GTM, differentiation, or the revenue and growth success rows. Write `該当なし（自分用）` there. Fill infrastructure cost as the Cloudflare free tier. Do not edit the template.
 - At design, copy `templates/design-doc.md` to `docs/design-doc.md` and fill every section. Ask only decisions only the user can make, such as auth, billing, and domain. Do not ask again when the answer is already known. Do not delete unused sections; write 該当なし.
 - After the user accepts the PRD, build a dependency-free HTML mock of the PRD screen flow and P0 screens only, under `docs/mockup/` (`index.html` links to each screen). Show phone-width and desktop-width screenshots and wait for OK. The OK is required in both modes. Revise and show again when asked. Reflect spec changes in `docs/prd.md`. Do not add a feature. Only a feature the user explicitly wants to defer is a note for the next version, in the PRD Won't row. The mock aligns the overall image and rough UI only. It is not the visual source of truth. Design and implementation may glance at it. Do not compare implementation PRs against it.
 - After the user accepts the mockup, ask once: `full-auto` or `approval`.
-- In both modes, destructive data operations and anything that costs money stop for an explicit user yes. Run `node tools/gate/cli.mjs guard --command "<exact command>"` first. Exit 3 means wait. Exit 4 means the command is forbidden.
+- In both modes, deleting production data, buying or changing domains, and anything billable stop for an explicit user yes. Deploy stops for a user yes in approval and on websites, which have no mode. In full-auto, deploy does not stop. Run `node tools/gate/cli.mjs guard --command "<exact command>"` first. Exit 3 means wait. Exit 4 means the command is forbidden.
 - Websites use Astro and may build and deploy with Wrangler. Applications use Void (Void SDK, deployed with the Void CLI). Host on Cloudflare. Apps deploy with `cf` or the Void CLI, not Wrangler.
 - One pull request per ticket. A PR without a verification video is not done. Record it with `tools/verify-record/record.mjs`. The gate rejects a missing, tiny, or non-video file.
 - After tickets are split, repeat until no ticket is unstarted. One pull request at a time, not in parallel. Hand the top unstarted ticket whose dependencies are done to implementation. Check that CI is green or a Playwright video exists, and fix what is missing. If CI fails or the video is missing twice in a row on the same ticket, stop and ask the user. In full-auto the bot merges; in approval, wait for the user's approve and merge. Deploy, confirm the production URL works, mark the ticket done, and report in one or two lines. When none are unstarted, report the pull requests, the production URL, and the next-version note, then stop.
@@ -77,18 +77,19 @@ OK はモードに関係なく利用者からもらう。OK なら `approve-mock
 
 モック承認の直後に、`next` が返すモードの質問を一度だけ聞く。
 
-- `full-auto`: 設計書、チケットの粒度、実装 PR はボットが進める。
-- `approval`: 設計書、チケットの粒度、各 PR を利用者が承認する。
+- `full-auto`: 設計書、チケットの粒度、実装 PR、デプロイはボットが進める。
+- `approval`: 設計書、チケットの粒度、各 PR、デプロイを利用者が承認する。
 
 選ばれた語を `docs/03-mode.md` に書き、`set-mode --mode <full-auto|approval> --by user`。この質問を実装の途中で繰り返さない。
 
+デプロイ（`cf deploy`, `void deploy`, `npm run deploy`）は、approval では確認する。full-auto では確認しない。サイトはモードが無いので、デプロイは確認する。
+
 どちらのモードでも、次は確認が要る。
 
-- デプロイ（`cf deploy`, `void deploy`）
-- データベースやオブジェクトの作成・削除・復元・ロールバック
-- 書き込み SQL、`--force`
+- 本番データの削除（データベースやオブジェクトの削除・復元・ロールバック、書き込み SQL、`--force`）
 - 本番シークレット
-- ドメインの購入や、DNS を変える操作
+- ドメインの購入や変更、DNS を変える操作
+- 費用がかかる操作（資源の作成を含む）
 
 迷ったら確認する。`guard` が allow でも、データが消えるなら止まる。
 
@@ -115,7 +116,7 @@ OK はモードに関係なく利用者からもらう。OK なら `approve-mock
 
 ## 6. チケット
 
-最初の1枚は必ず T1「空のアプリをCloudflare本番に出す」。これは設計とチケットの確定のあと、`implement` で行う。中身は、リポジトリ作成、Void の導入（`void init` を含む）、必要な D1 等のリソース作成とバインディング、`cf` または Void CLI でのデプロイ、本番 URL での表示確認。資源の作成とデプロイは利用者の確認が要る。この1枚の `feature` はヒアリングの機能名でなくてよい。空の公開の記録は [docs/cloudflare-deploy.md](docs/cloudflare-deploy.md)。
+最初の1枚は必ず T1「空のアプリをCloudflare本番に出す」。これは設計とチケットの確定のあと、`implement` で行う。中身は、リポジトリ作成、Void の導入（`void init` を含む）、必要な D1 等のリソース作成とバインディング、`cf` または Void CLI でのデプロイ、本番 URL での表示確認。資源の作成は利用者の確認が要る。デプロイは approval では確認し、full-auto では確認しない。この1枚の `feature` はヒアリングの機能名でなくてよい。空の公開の記録は [docs/cloudflare-deploy.md](docs/cloudflare-deploy.md)。
 
 その後、v1 の機能ごとに `templates/ticket.md` で `docs/tickets/T2.md` のように書き、`add-ticket` する。
 
@@ -133,7 +134,7 @@ OK はモードに関係なく利用者からもらう。OK なら `approve-mock
 
 ### アプリ
 
-実装ループで、依存が片付いた未着手チケットの一番上だけを実装する。PR は一枚。並列にしない。T1 の空の公開は [docs/cloudflare-deploy.md](docs/cloudflare-deploy.md) の空の公開で、実装中に記録する。各 PR のあと、本番に出せる状態を保つ。デプロイそのものは利用者の確認が要る。
+実装ループで、依存が片付いた未着手チケットの一番上だけを実装する。PR は一枚。並列にしない。T1 の空の公開は [docs/cloudflare-deploy.md](docs/cloudflare-deploy.md) の空の公開で、実装中に記録する。各 PR のあと、本番に出せる状態を保つ。デプロイは approval では利用者の確認が要り、full-auto では要らない。
 
 1. ローカルで受入条件を満たす。
 2. `docs/verification-video.md` の手順で Playwright の動画を録る。終了コードが 0 のときだけ次へ進む。
@@ -156,13 +157,13 @@ OK はモードに関係なく利用者からもらう。OK なら `approve-mock
 5. デプロイして本番 URL で動くのを確かめ、チケットを完了にして1〜2行で報告する。
 6. 未着手がなくなったら、PR・本番 URL・「次の版」メモをまとめて報告して止まる。
 
-デプロイは利用者の確認が要る。ゲートの `v1` は、未着手が尽きたあと phase が `deploy` になってから記録する。各周のチケット完了は `attach-pr` である。
+デプロイは approval では利用者の確認が要り、full-auto では要らない。本番データの削除、ドメインの購入や変更、費用がかかる操作はどちらのモードでも確認する。ゲートの `v1` は、未着手が尽きたあと phase が `deploy` になってから記録する。各周のチケット完了は `attach-pr` である。approval の記録は `confirm-deploy --by user`、full-auto は `--by bot`。
 
 ## 8. デプロイ
 
 マイルストーンは v1 の公開一つをゲートが持つ。コマンドはどちらも `npm run deploy`。サイトの script は Wrangler、アプリの script は Void CLI。サイトはヒアリングの直後に、アプリは設計の確定時に固定される。本番 URL で表示を確認する。
 
-利用者に、何が公開され、何が未検証で、費用が出るかを伝えてから `confirm-deploy --by user --decision run|skip`。`run` のあとだけコマンドを実行し、成功したら `mark-deploy --exit 0`。失敗したら mark せず、直してからまた確認する。
+approval とサイトは、何が公開され、何が未検証で、費用が出るかを利用者に伝えてから `confirm-deploy --by user --decision run|skip`。full-auto は `confirm-deploy --by bot` で、デプロイの確認は待たない。`run` のあとだけコマンドを実行し、成功したら `mark-deploy --exit 0`。失敗したら mark せず、直してからまた確認する。
 
 `docs/cloudflare-deploy.md` が TODO としている操作は、run を提案しない。サイト（Astro）は `cf` ではビルドできないため、ビルドとデプロイに Wrangler を使う。アプリは Wrangler に切り替えない。
 
