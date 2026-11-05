@@ -62,7 +62,7 @@ void project rollback
 
 生成したアプリの `scripts.deploy` は `void deploy --platform cloudflare`。呼び出しは `npm run deploy`。`void init --deploy none` のあと、プラットフォーム無しの `void deploy` では公開先が決まらない。
 
-`void deploy` は資源を作り、Worker を上げる前に D1 のマイグレーションを適用する。失敗しても適用が残ることがある。公開の前に `void db generate` を実行する。認証のテーブルも出る。`db/migrations` は公開の前にコミットする。`void.lock.json` は初回デプロイの直後にできるので、そのときコミットする。初回と、マイグレーションがあるたびに確認する。Sandbox は Workers Paid と Containers が要る、と Deployment ページにある。スターターでそれを選ばない。
+`void deploy` は資源を作り、Worker を上げる前に D1 のマイグレーションを適用する。失敗しても適用が残ることがある。公開の前に `void db generate` を実行する。認証のテーブルも出る。`db/migrations` は公開の前にコミットする。`void.lock.json` は初回デプロイの直後にできるので、そのときコミットする。approval とサイトは初回と、マイグレーションがあるたびに確認する。full-auto は、DROP / DELETE / TRUNCATE で本番データを消すときだけ確認する。Sandbox は Workers Paid と Containers が要る、と Deployment ページにある。スターターでそれを選ばない。
 
 Void が作った Worker、D1、KV、R2 を Void の外で消さない。消してしまったときは、`void.lock.json` の古い項目を除き、生成された `.void-wrangler.jsonc` と `dist` と `.cloudflare` を消してから出し直す。`--provision` では戻らない。エラーは 10041。
 
@@ -99,7 +99,7 @@ D1 以外の正確なサブコマンドは、このファイルに写さない�
 1. `cf cli search "<やりたいこと>"`
 2. `cf schema <出たコマンド>`
 3. 公式が示すフラグだけで `--dry-run`
-4. `guard` と利用者の確認
+4. `guard` を通す。approval とサイトは利用者の確認。full-auto の無料枠の作成は allow
 5. `--dry-run` を外して実行
 
 KV と R2 の create サブコマンド名は、2026-11-03 の調査では公式例を `cf d1 create` 以外に固定しなかった。TODO のままである。

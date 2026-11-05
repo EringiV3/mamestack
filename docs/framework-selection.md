@@ -67,7 +67,7 @@ void deploy --platform cloudflare
 
 `void deploy` はビルドし、資源を作り、`db/migrations/` の SQL を適用し、URL を出す。スキーマだけ変わっていると止まり、`void db generate` で SQL を出してから、人間が読んでコミットする。ロールバックはマイグレーションを戻さない。D1 では適用前に復元ポイントを残し、`void db restore` のコマンドを表示する、と Deployment にある。`void db restore` は破壊的なので、full-auto でも確認する。`void deploy` 自体は、full-auto では確認しない。
 
-本番シークレットは `void secret put`。ローカルの `.env` はアップロードしない、と公式にある。確認してから置く。
+本番シークレットは `void secret put`。ローカルの `.env` はアップロードしない、と公式にある。approval とサイトは確認してから置く。full-auto では確認しない。
 
 ログとロールバック:
 
@@ -77,7 +77,7 @@ void project logs
 void project rollback
 ```
 
-`void project rollback` は確認が要る。古いコードが今のスキーマで動くかを先に見る。
+`void project rollback` はマイグレーションを戻さない。approval とサイトは確認する。full-auto では、データを消さないので確認しない。古いコードが今のスキーマで動くかを先に見る。
 
 Void のチーム向けプラットフォーム（`void deploy --platform void`）は mamestack の既定にしない。個人の Cloudflare アカウントへ出す。
 

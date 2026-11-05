@@ -10,14 +10,13 @@
 
 ## full-auto
 
-設計書とチケット粒度はボットが確定してよい（`--by bot`）。実装も PR ごとに止まらない。デプロイ（`cf deploy`、`void deploy`、`npm run deploy`）も確認しない。`confirm-deploy --by bot` で記録する。
+設計書とチケット粒度はボットが確定してよい（`--by bot`）。実装も PR ごとに止まらない。確認するのは次の三つだけである。`confirm-deploy --by bot` でデプロイを記録する。
 
-それでも次は必ず聞く。
+- 本番データの削除。DROP / DELETE / TRUNCATE、D1 / KV / R2 の削除、`void db restore` のように本番データを消す復元やロールバック
+- ドメインの購入や変更、DNS、カスタムドメイン
+- 費用がかかる操作。有料プラン、Workers Paid、Containers などの有料枠
 
-- 本番データの削除。D1 / KV / R2 の削除、書き込み SQL、`--force`、`void db restore`、`void project rollback`
-- `void secret put`
-- ドメインの購入、DNS を変える操作
-- 費用が出る操作。D1 / KV / R2 の作成、Workers Paid、Containers など
+無料枠の D1、KV、R2、Workers の作成、壊さないマイグレーション（INSERT / UPDATE / ALTER）、`void secret put`、`--force` のデプロイ、データを消さない `void project rollback` は確認しない。
 
 `void db restore --platform cloudflare --bookmark=…` はブックマーク以降の書き込みを消す。本番データなので確認が先。`void deploy` は Worker を上げる前に D1 のマイグレーションを適用するので、失敗しても適用が残ることがある。full-auto では、そのデプロイ自体では止まらない。
 

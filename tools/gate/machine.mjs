@@ -39,7 +39,7 @@ export const QUESTIONS = {
 export const EMPTY_APP_TICKET_TITLE = "空のアプリをCloudflare本番に出す";
 
 const MODE_QUESTION =
-  "ここから先は、どちらにしますか。full-auto（この後はボットが進める。デプロイの確認はしない。ただし本番データの削除、ドメインの購入や変更、費用のかかる操作は必ず確認する）か、approval（設計書、チケットの粒度、各 PR、デプロイをあなたが承認する）か。";
+  "ここから先は、どちらにしますか。full-auto（この後はボットが進める。確認するのは、本番データの削除、ドメインの購入や変更、費用のかかる操作だけ）か、approval（設計書、チケットの粒度、各 PR、デプロイをあなたが承認する）か。";
 
 function hasPrdHeading(body) {
   return /^#\s.*PRD/m.test(body);
@@ -708,6 +708,70 @@ export function markDeploy(state, milestoneId, exitCode) {
   };
 }
 
+function isLookup(normalized) {
+  return /\bcf\s+(cli|docs)\s+search\b/.test(normalized) || /\bcf\s+schema\b/.test(normalized);
+}
+
+function changesDomain(normalized) {
+  if (isLookup(normalized)) {
+    return false;
+  }
+  return (
+    /\bdns\b/i.test(normalized) ||
+    /\bregistrar\b/i.test(normalized) ||
+    /\bpurchase\b/i.test(normalized) ||
+    /\bcustom[-_]?domains?\b/i.test(normalized) ||
+    /\b--domains?\b/i.test(normalized) ||
+    /\bdomains?\b/i.test(normalized)
+  );
+}
+
+function incursCharge(normalized) {
+  if (isLookup(normalized)) {
+    return false;
+  }
+  return /\b(paid|billing)\b/i.test(normalized) || /\bcontainers?\b/i.test(normalized);
+}
+
+function deletesProdSql(normalized) {
+  if (/\b(drop|truncate)\b/i.test(normalized)) {
+    return true;
+  }
+  if (!/\bdelete\b/i.test(normalized)) {
+    return false;
+  }
+  return (
+    /\b(query|execute)\b/i.test(normalized) ||
+    /--sql\b/i.test(normalized) ||
+    /--command\b/i.test(normalized)
+  );
+}
+
+function requiresOwner(normalized) {
+  if (isLookup(normalized)) {
+    return null;
+  }
+  if (deletesProdSql(normalized)) {
+    return "本番データの削除です";
+  }
+  if (/\b(d1|kv|r2)\b/i.test(normalized) && /\bdelete\b/i.test(normalized)) {
+    return "D1、KV、R2 の削除です";
+  }
+  if (/\bdb\s+restore\b/i.test(normalized)) {
+    return "データベースの復元は本番データを消します";
+  }
+  if (/\brollback\b/i.test(normalized) && /\b(restore|drop|truncate|bookmark)\b/i.test(normalized)) {
+    return "本番データを消すロールバックです";
+  }
+  if (changesDomain(normalized)) {
+    return "ドメインの購入や変更です";
+  }
+  if (incursCharge(normalized)) {
+    return "費用がかかる操作です";
+  }
+  return null;
+}
+
 function classifyDeploy(mode, reason) {
   if (mode === "full-auto") {
     return { class: "allow", reason: "" };
@@ -715,50 +779,50 @@ function classifyDeploy(mode, reason) {
   return { class: "confirm", reason };
 }
 
-function changesDns(normalized) {
-  if (/\bcf\s+(cli|docs)\s+search\b/.test(normalized)) {
-    return false;
-  }
-  return /\bdns\b/i.test(normalized);
-}
-
 export function classifyCommand(command, options = {}) {
   const track = options.track ?? null;
   const mode = options.mode ?? null;
   const normalized = command.trim();
+  const owner = requiresOwner(normalized);
   if (/wrangler/i.test(normalized)) {
     if (track !== "site") {
       return { class: "forbidden", reason: "アプリは Wrangler を使いません。サイト（Astro）だけが使います" };
+    }
+    if (owner) {
+      return { class: "confirm", reason: owner };
+    }
+    if (mode === "full-auto") {
+      return { class: "allow", reason: "" };
     }
     if (/\b(delete|secret)\b/i.test(normalized) || /--force\b/.test(normalized)) {
       return { class: "confirm", reason: "サイトの Wrangler の削除、シークレット、--force は確認が要ります" };
     }
     if (/\bdeploy\b/.test(normalized)) {
-      return classifyDeploy(mode, "サイトの Wrangler デプロイは approval とサイトでは利用者の確認が要ります");
+      return { class: "confirm", reason: "サイトの Wrangler デプロイは approval とサイトでは利用者の確認が要ります" };
     }
+    return { class: "allow", reason: "" };
+  }
+  if (owner) {
+    return { class: "confirm", reason: owner };
+  }
+  if (mode === "full-auto") {
     return { class: "allow", reason: "" };
   }
   const confirmers = [
     { re: /\bvoid\s+secret\s+put\b/, reason: "本番シークレットの書き込みです" },
-    { re: /\bvoid\s+db\s+restore\b/, reason: "データベースの復元は破壊的です" },
     { re: /\bvoid\s+project\s+rollback\b/, reason: "ロールバックです" },
     { re: /\bcf\s+\S+\s+delete\b/, reason: "削除です" },
     { re: /\bcf\s+(d1|kv|r2)\s+create\b/, reason: "資源の作成です。費用がかかることがあります" },
     { re: /--force\b/, reason: "--force は破壊的操作に使われます" },
-    { re: /\bpurchase\b/i, reason: "購入は費用がかかります" },
-    { re: /\bregistrar\b/i, reason: "ドメインの購入や移管は費用がかかることがあります" },
   ];
   for (const confirmer of confirmers) {
     if (confirmer.re.test(normalized)) {
       return { class: "confirm", reason: confirmer.reason };
     }
   }
-  if (changesDns(normalized)) {
-    return { class: "confirm", reason: "DNS を変える操作です" };
-  }
   if (
     /\bcf\s+d1\s+query\b/i.test(normalized) &&
-    /\b(drop|delete|update|insert|alter|truncate)\b/i.test(normalized)
+    /\b(update|insert|alter)\b/i.test(normalized)
   ) {
     return { class: "confirm", reason: "D1 への書き込み SQL です" };
   }
@@ -851,7 +915,7 @@ export function nextAction(state, root) {
       return {
         code: "write-tickets",
         message:
-          "最初のチケットは必ず T1「空のアプリをCloudflare本番に出す」です。リポジトリ作成、Void 導入、必要な D1 等の作成とバインディング、cf または Void CLI でのデプロイ、本番 URL の表示確認を受入条件にします。資源の作成は利用者の確認が要ります。デプロイは approval では確認し、full-auto では確認しません。その後に v1 の機能チケットを足します。サイズ L は禁止です。各 PR のあと本番に出せる状態を保ちます。approval なら粒度の OK を待って confirm-tickets --by user。full-auto なら confirm-tickets --by bot。",
+          "最初のチケットは必ず T1「空のアプリをCloudflare本番に出す」です。リポジトリ作成、Void 導入、必要な D1 等の作成とバインディング、cf または Void CLI でのデプロイ、本番 URL の表示確認を受入条件にします。無料枠の D1、KV、R2、Workers の作成は full-auto では確認しません。有料プランと有料枠は確認します。デプロイは approval では確認し、full-auto では確認しません。その後に v1 の機能チケットを足します。サイズ L は禁止です。各 PR のあと本番に出せる状態を保ちます。approval なら粒度の OK を待って confirm-tickets --by user。full-auto なら confirm-tickets --by bot。",
       };
     case "implement": {
       if (state.track === "site") {
@@ -871,7 +935,7 @@ export function nextAction(state, root) {
       }
       return {
         code: "implement",
-        message: `チケット分割のあと、未着手がなくなるまで繰り返します。PR は1つずつ順番です。並列にしません。今はチケット ${open.id} だけです。依存が片付いた未着手の一番上です。実装して PR を1枚作り、CI が緑か Playwright の動画があるかを確かめ、欠けていれば直します。同じチケットで CI 失敗か動画の欠けが2回続いたら止めて利用者に相談します。full-auto ならボットがマージし、approval なら利用者の approve とマージを待ちます。デプロイして本番 URL で動くのを確かめ、チケットを完了にして1〜2行で報告します。approval のデプロイは利用者の確認が要ります。full-auto のデプロイは確認しません。本番データの削除、ドメインの購入や変更、費用がかかる操作はどちらのモードでも確認します。T1 の空の公開は confirm-deploy --milestone empty で実装中に記録します。approval は --by user、full-auto は --by bot です。ゲートの v1 は未着手が尽きたあとです。未着手がなくなったら PR・本番 URL・「次の版」メモをまとめて報告して止まります。動画の無い PR は完了になりません。モックとの差分確認はしません。`,
+        message: `チケット分割のあと、未着手がなくなるまで繰り返します。PR は1つずつ順番です。並列にしません。今はチケット ${open.id} だけです。依存が片付いた未着手の一番上です。実装して PR を1枚作り、CI が緑か Playwright の動画があるかを確かめ、欠けていれば直します。同じチケットで CI 失敗か動画の欠けが2回続いたら止めて利用者に相談します。full-auto ならボットがマージし、approval なら利用者の approve とマージを待ちます。デプロイして本番 URL で動くのを確かめ、チケットを完了にして1〜2行で報告します。full-auto で確認するのは、本番データの削除、ドメインの購入や変更、費用がかかる操作だけです。無料枠の資源作成、壊さないマイグレーション、本番シークレット、--force のデプロイ、データを消さないロールバックは確認しません。approval のデプロイは利用者の確認が要ります。T1 の空の公開は confirm-deploy --milestone empty で実装中に記録します。approval は --by user、full-auto は --by bot です。ゲートの v1 は未着手が尽きたあとです。未着手がなくなったら PR・本番 URL・「次の版」メモをまとめて報告して止まります。動画の無い PR は完了になりません。モックとの差分確認はしません。`,
       };
     }
     case "deploy":
